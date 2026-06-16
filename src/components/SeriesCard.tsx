@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ContentCard } from "./ContentCard";
 import { useCachedQuery } from "../lib/queries";
-import { getSeriesInfo, type Account, type SeriesInfo, type SeriesItem } from "../lib/xtream";
+import { getSeriesInfo, type Account, type SeriesInfo, type SeriesItem, imageCandidates } from "../lib/xtream";
 
 interface SeriesCardProps {
   account: Account;
@@ -10,32 +10,45 @@ interface SeriesCardProps {
 }
 
 export function SeriesCard({ account, cacheKey, series }: SeriesCardProps) {
-  const [needsDetails, setNeedsDetails] = useState(!series.cover);
+  const initialImages = useMemo(() => {
+    return [
+      series.cover,
+      series.cover_big,
+      series.movie_image,
+      series.stream_icon,
+      series.poster_path,
+      series.image,
+    ].filter(Boolean);
+  }, [series]);
+
+  const [needsDetails, setNeedsDetails] = useState(initialImages.length === 0);
   const details = useCachedQuery(
     `${cacheKey}:seriesinfo:${series.series_id}:cover`,
     () => getSeriesInfo(account, series.series_id),
     { enabled: needsDetails, maxAgeMs: 24 * 60 * 60 * 1000 },
   );
-  const fallbackImage = details.data ? bestSeriesImage(details.data, series.cover) : undefined;
+
+  const allImages = useMemo(() => {
+    const images = [...initialImages];
+    if (details.data) {
+      images.push(details.data.info?.cover);
+      for (const episodes of Object.values(details.data.episodes ?? {})) {
+        const image = episodes.find((ep) => ep.info?.movie_image)?.info?.movie_image;
+        if (image) images.push(image);
+      }
+    }
+    return images.filter((img) => img && img.trim());
+  }, [initialImages, details.data]);
 
   return (
     <ContentCard
       to="/series/$id"
       params={{ id: String(series.series_id) }}
       title={series.name}
-      image={series.cover}
-      fallbackImage={fallbackImage}
+      image={allImages[0]}
+      fallbackImage={allImages.slice(1).join("|")}
       rating={series.rating}
       onImageUnavailable={() => setNeedsDetails(true)}
     />
   );
-}
-
-function bestSeriesImage(data: SeriesInfo, currentCover?: string): string | undefined {
-  if (data.info?.cover && data.info.cover !== currentCover) return data.info.cover;
-  for (const episodes of Object.values(data.episodes ?? {})) {
-    const image = episodes.find((ep) => ep.info?.movie_image)?.info?.movie_image;
-    if (image) return image;
-  }
-  return data.info?.cover;
 }

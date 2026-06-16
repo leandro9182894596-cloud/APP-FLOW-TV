@@ -20,10 +20,27 @@ export function ContentCard({ to, params, title, image, fallbackImage, onImageUn
   const [failed, setFailed] = useState(false);
   const [sourceIndex, setSourceIndex] = useState(0);
   const notified = useRef(false);
+  
   const sources = useMemo(() => {
-    const all = [...imageCandidates(image), ...imageCandidates(fallbackImage)];
+    const all: string[] = [];
+    
+    // Adiciona a imagem principal
+    if (image) all.push(...imageCandidates(image));
+    
+    // Adiciona fallbacks (pode ser uma string separada por |)
+    if (fallbackImage) {
+      const fallbackList = fallbackImage.includes("|") ? fallbackImage.split("|") : [fallbackImage];
+      for (const fb of fallbackList) {
+        if (fb && fb.trim()) {
+          all.push(...imageCandidates(fb.trim()));
+        }
+      }
+    }
+    
+    // Remove duplicatas e valores vazios
     return Array.from(new Set(all.filter(Boolean)));
   }, [image, fallbackImage]);
+  
   const src = sources[sourceIndex];
 
   useEffect(() => {

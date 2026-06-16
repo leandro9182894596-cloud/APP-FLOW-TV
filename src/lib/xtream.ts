@@ -324,7 +324,15 @@ function normalizeSeriesList(list: SeriesItem[], base: string): SeriesItem[] {
   return Array.isArray(list)
     ? list.map((item) => {
         const cover = item.cover || item.cover_big || item.movie_image || item.stream_icon || item.poster_path || item.image;
-        return { ...item, cover: normalizeMediaUrl(cover, base) };
+        return {
+          ...item,
+          cover: normalizeMediaUrl(cover, base),
+          cover_big: normalizeMediaUrl(item.cover_big, base),
+          movie_image: normalizeMediaUrl(item.movie_image, base),
+          stream_icon: normalizeMediaUrl(item.stream_icon, base),
+          poster_path: normalizeMediaUrl(item.poster_path, base),
+          image: normalizeMediaUrl(item.image, base),
+        };
       })
     : [];
 }
