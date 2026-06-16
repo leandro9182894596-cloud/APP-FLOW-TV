@@ -69,8 +69,9 @@ const SETTINGS_KEY = "flowtv.settings";
 export interface AppSettings {
   logo?: string; // data URL or remote URL
   background?: string; // data URL or remote URL
-  banner?: string; // ad banner image
-  bannerLink?: string; // optional click-through URL
+  banner?: string; // ad banner image (compatibilidade retroativa)
+  bannerLink?: string; // optional click-through URL (compatibilidade retroativa)
+  banners?: Array<{ image: string; link?: string }>; // multiple banners
   dnsList?: string[]; // up to 5 server DNS endpoints
 }
 

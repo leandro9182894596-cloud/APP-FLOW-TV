@@ -30,8 +30,9 @@ export const Route = createFileRoute("/admin")({
 interface FormState {
   logo?: string;
   background?: string;
-  banner?: string;
-  bannerLink: string;
+  banner?: string; // compatibilidade retroativa
+  bannerLink: string; // compatibilidade retroativa
+  banners: Array<{ image: string; link?: string }>;
   dns: string[]; // always length 5
 }
 
@@ -41,7 +42,7 @@ function AdminPage() {
   const [password, setPassword] = useState("");
   const [checking, setChecking] = useState(false);
 
-  const [form, setForm] = useState<FormState>({ bannerLink: "", dns: ["", "", "", "", ""] });
+  const [form, setForm] = useState<FormState>({ bannerLink: "", banners: [], dns: ["", "", "", "", ""] });
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -54,6 +55,7 @@ function AdminPage() {
       background: cfg.background ?? undefined,
       banner: cfg.banner ?? undefined,
       bannerLink: cfg.bannerLink ?? "",
+      banners: cfg.banners ?? [],
       dns: dns.slice(0, 5),
     });
   };
@@ -93,6 +95,7 @@ function AdminPage() {
           background: form.background ?? null,
           banner: form.banner ?? null,
           bannerLink: form.bannerLink,
+          banners: form.banners.length > 0 ? form.banners : null,
           dnsList: form.dns,
           newPassword: newPassword.trim() || undefined,
         },
@@ -225,27 +228,66 @@ function AdminPage() {
             onChange={(v) => update({ background: v })}
           />
 
-          <div className="space-y-2 border-t border-border pt-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Megaphone className="h-4 w-4 text-primary" /> Banner de anúncio
-            </h3>
-            <ImageField
-              label="Imagem do banner"
-              help="Exibido em destaque, bem aparente na tela inicial."
-              value={form.banner}
-              onChange={(v) => update({ banner: v })}
-            />
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Link do banner (opcional)</span>
-              <input
-                type="text"
-                inputMode="url"
-                placeholder="https://..."
-                value={form.bannerLink}
-                onChange={(e) => update({ bannerLink: e.target.value })}
-                className="w-full rounded-xl border border-input bg-secondary/50 px-3.5 py-3 text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
-              />
-            </label>
+          <div className="space-y-4 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Megaphone className="h-4 w-4 text-primary" /> Banners de anúncio
+              </h3>
+              <button
+                type="button"
+                onClick={() => update({ banners: [...form.banners, { image: "", link: "" }] })}
+                className="focusable flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50"
+              >
+                <Upload className="h-3.5 w-3.5" /> Adicionar banner
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Os banners rotacionam automaticamente a cada 5 segundos.
+            </p>
+            
+            {form.banners.map((banner, index) => (
+              <div key={index} className="space-y-3 rounded-xl border border-border bg-secondary/30 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Banner {index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newBanners = [...form.banners];
+                      newBanners.splice(index, 1);
+                      update({ banners: newBanners });
+                    }}
+                    className="focusable flex items-center gap-1.5 text-xs text-destructive hover:underline"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Remover
+                  </button>
+                </div>
+                <ImageField
+                  label="Imagem do banner"
+                  help="Tamanho recomendado: 1920x1080 pixels."
+                  value={banner.image}
+                  onChange={(v) => {
+                    const newBanners = [...form.banners];
+                    newBanners[index] = { ...banner, image: v || "" };
+                    update({ banners: newBanners });
+                  }}
+                />
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Link do banner (opcional)</span>
+                  <input
+                    type="text"
+                    inputMode="url"
+                    placeholder="https://..."
+                    value={banner.link || ""}
+                    onChange={(e) => {
+                      const newBanners = [...form.banners];
+                      newBanners[index] = { ...banner, link: e.target.value };
+                      update({ banners: newBanners });
+                    }}
+                    className="w-full rounded-xl border border-input bg-secondary/50 px-3.5 py-3 text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
+                  />
+                </label>
+              </div>
+            ))}
           </div>
         </div>
 

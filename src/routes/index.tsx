@@ -112,11 +112,17 @@ function HomePage() {
       )}
 
       {/* Ad banner — below the featured hero */}
-      {settings.banner && (
+      {(settings.banners && settings.banners.length > 0) || settings.banner ? (
         <div className="px-4 pt-6 lg:px-12">
-          <AdBanner image={settings.banner} link={settings.bannerLink} />
+          <AdBanner 
+            banners={
+              settings.banners && settings.banners.length > 0 
+                ? settings.banners 
+                : [{ image: settings.banner!, link: settings.bannerLink }]
+            } 
+          />
         </div>
-      )}
+      ) : null}
 
       <div className="space-y-10 px-4 py-8 lg:px-12">
 
@@ -303,28 +309,68 @@ function SeriesHomeRow({
   );
 }
 
-function AdBanner({ image, link }: { image: string; link?: string }) {
+function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }> }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % banners.length);
+    }, 5000); // 5 segundos por banner
+
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
+  const currentBanner = banners[currentIndex];
+
   const content = (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4 }}
-      className="relative overflow-hidden rounded-2xl border border-primary/30 shadow-glow ring-1 ring-primary/20"
-    >
+    <div className="relative overflow-hidden rounded-2xl border border-primary/30 shadow-glow ring-1 ring-primary/20">
       <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90">
         Anúncio
       </span>
-      <img
-        src={image}
-        alt="Anúncio"
-        className="max-h-[420px] min-h-[200px] w-full object-cover"
-        loading="eager"
-      />
-    </motion.div>
+      
+      {banners.map((banner, index) => (
+        <motion.img
+          key={index}
+          src={banner.image}
+          alt={`Anúncio ${index + 1}`}
+          className="absolute inset-0 w-full object-contain sm:object-cover"
+          style={{
+            maxHeight: '50vh',
+            minHeight: '120px',
+            aspectRatio: '16/9'
+          }}
+          loading="eager"
+          initial={{ opacity: 0 }}
+          animate={{ 
+            opacity: index === currentIndex ? 1 : 0,
+            scale: index === currentIndex ? 1 : 0.95
+          }}
+          transition={{ duration: 0.5 }}
+        />
+      ))}
+      
+      {/* Indicadores */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`h-2 rounded-full transition-all ${
+                index === currentIndex ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/80'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
-  if (link) {
+
+  if (currentBanner.link) {
     return (
-      <a href={link} target="_blank" rel="noopener noreferrer" className="focusable block">
+      <a href={currentBanner.link} target="_blank" rel="noopener noreferrer" className="focusable block">
         {content}
       </a>
     );

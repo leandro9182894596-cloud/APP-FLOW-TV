@@ -5,6 +5,7 @@ export interface PublicConfig {
   background: string | null;
   banner: string | null;
   bannerLink: string | null;
+  banners: Array<{ image: string; link?: string }> | null;
   dnsList: string[];
 }
 
@@ -21,7 +22,7 @@ export const getConfig = createServerFn({ method: "GET" }).handler(
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("app_config")
-      .select("logo, background, banner, banner_link, dns_list")
+      .select("logo, background, banner, banner_link, banners, dns_list")
       .eq("id", 1)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -30,6 +31,7 @@ export const getConfig = createServerFn({ method: "GET" }).handler(
       background: data?.background ?? null,
       banner: data?.banner ?? null,
       bannerLink: data?.banner_link ?? null,
+      banners: Array.isArray(data?.banners) ? (data!.banners as Array<{ image: string; link?: string }>) : null,
       dnsList: Array.isArray(data?.dns_list) ? (data!.dns_list as string[]) : [],
     };
   },
@@ -63,6 +65,7 @@ interface SavePayload {
   background?: string | null;
   banner?: string | null;
   bannerLink?: string | null;
+  banners?: Array<{ image: string; link?: string }> | null;
   dnsList?: string[];
   newPassword?: string;
 }
@@ -89,6 +92,7 @@ export const saveConfig = createServerFn({ method: "POST" })
       background?: string | null;
       banner?: string | null;
       banner_link?: string | null;
+      banners?: Array<{ image: string; link?: string }> | null;
       dns_list?: string[];
       admin_password?: string;
     } = { updated_at: new Date().toISOString() };
@@ -96,6 +100,7 @@ export const saveConfig = createServerFn({ method: "POST" })
     if (data.background !== undefined) update.background = data.background;
     if (data.banner !== undefined) update.banner = data.banner;
     if (data.bannerLink !== undefined) update.banner_link = data.bannerLink || null;
+    if (data.banners !== undefined) update.banners = data.banners;
     if (data.dnsList !== undefined) {
       update.dns_list = data.dnsList.map(normalizeDns).filter(Boolean).slice(0, 5);
     }
@@ -107,7 +112,7 @@ export const saveConfig = createServerFn({ method: "POST" })
       .from("app_config")
       .update(update)
       .eq("id", 1)
-      .select("logo, background, banner, banner_link, dns_list")
+      .select("logo, background, banner, banner_link, banners, dns_list")
       .single();
     if (error) throw new Error(error.message);
 
@@ -116,6 +121,7 @@ export const saveConfig = createServerFn({ method: "POST" })
       background: updated.background ?? null,
       banner: updated.banner ?? null,
       bannerLink: updated.banner_link ?? null,
+      banners: Array.isArray(updated.banners) ? (updated.banners as Array<{ image: string; link?: string }>) : null,
       dnsList: Array.isArray(updated.dns_list) ? (updated.dns_list as string[]) : [],
     };
   });
