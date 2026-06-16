@@ -23,7 +23,7 @@ export function useSettings(): AppSettings {
         background: cfg.background ?? undefined,
         banner: cfg.banner ?? undefined,
         bannerLink: cfg.bannerLink ?? undefined,
-        banners: cfg.banners ?? undefined,
+        banners: Array.isArray(cfg.banners) ? cfg.banners : undefined,
         dnsList: cfg.dnsList,
       };
       saveSettings(next);

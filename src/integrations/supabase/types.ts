@@ -20,6 +20,7 @@ export type Database = {
           background: string | null
           banner: string | null
           banner_link: string | null
+          banners: Json
           dns_list: Json
           id: number
           logo: string | null
@@ -30,6 +31,7 @@ export type Database = {
           background?: string | null
           banner?: string | null
           banner_link?: string | null
+          banners?: Json
           dns_list?: Json
           id?: number
           logo?: string | null
@@ -40,6 +42,7 @@ export type Database = {
           background?: string | null
           banner?: string | null
           banner_link?: string | null
+          banners?: Json
           dns_list?: Json
           id?: number
           logo?: string | null

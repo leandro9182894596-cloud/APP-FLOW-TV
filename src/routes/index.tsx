@@ -112,17 +112,25 @@ function HomePage() {
       )}
 
       {/* Ad banner — below the featured hero */}
-      {(settings.banners && settings.banners.length > 0) || settings.banner ? (
-        <div className="px-4 pt-6 lg:px-12">
-          <AdBanner 
-            banners={
-              settings.banners && settings.banners.length > 0 
-                ? settings.banners 
-                : [{ image: settings.banner!, link: settings.bannerLink }]
-            } 
-          />
-        </div>
-      ) : null}
+      {(() => {
+        // Tenta banners múltiplos primeiro, senão usa o banner único
+        let bannersList: Array<{ image: string; link?: string }> = [];
+        
+        if (settings.banners && Array.isArray(settings.banners) && settings.banners.length > 0) {
+          bannersList = settings.banners.filter((b: any) => b && b.image);
+        } else if (settings.banner) {
+          bannersList = [{ image: settings.banner, link: settings.bannerLink }];
+        }
+        
+        if (bannersList.length > 0) {
+          return (
+            <div className="px-4 pt-6 lg:px-12">
+              <AdBanner banners={bannersList} />
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       <div className="space-y-10 px-4 py-8 lg:px-12">
 
@@ -310,19 +318,30 @@ function SeriesHomeRow({
 }
 
 function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }> }) {
+  // Filtra apenas banners válidos
+  const validBanners = banners.filter(b => b && b.image && b.image.trim());
+  
+  if (validBanners.length === 0) return null;
+  
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    if (banners.length <= 1) return;
+    // Reset error when banner changes
+    setImageError(false);
+  }, [currentIndex]);
+
+  useEffect(() => {
+    if (validBanners.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % banners.length);
+      setCurrentIndex((prev) => (prev + 1) % validBanners.length);
     }, 5000); // 5 segundos por banner
 
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [validBanners.length]);
 
-  const currentBanner = banners[currentIndex];
+  const currentBanner = validBanners[currentIndex];
 
   const content = (
     <div className="relative overflow-hidden rounded-2xl border border-primary/30 shadow-glow ring-1 ring-primary/20">
@@ -330,31 +349,40 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
         Anúncio
       </span>
       
-      {banners.map((banner, index) => (
+      {!imageError ? (
         <motion.img
-          key={index}
-          src={banner.image}
-          alt={`Anúncio ${index + 1}`}
-          className="absolute inset-0 w-full object-contain sm:object-cover"
+          src={currentBanner.image}
+          alt="Anúncio"
+          className="w-full object-contain sm:object-cover"
           style={{
             maxHeight: '50vh',
             minHeight: '120px',
             aspectRatio: '16/9'
           }}
           loading="eager"
-          initial={{ opacity: 0 }}
-          animate={{ 
-            opacity: index === currentIndex ? 1 : 0,
-            scale: index === currentIndex ? 1 : 0.95
-          }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
+          onError={() => setImageError(true)}
         />
-      ))}
+      ) : (
+        // Fallback se a imagem não carregar
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-secondary p-3 text-center" style={{
+          maxHeight: '50vh',
+          minHeight: '120px',
+          aspectRatio: '16/9'
+        }}>
+          <svg className="h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-sm font-medium text-muted-foreground">{currentBanner.name || 'Anúncio'}</span>
+        </div>
+      )}
       
       {/* Indicadores */}
-      {banners.length > 1 && (
+      {validBanners.length > 1 && (
         <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-          {banners.map((_, index) => (
+          {validBanners.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
