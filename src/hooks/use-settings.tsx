@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { loadSettings, saveSettings, type AppSettings } from "../lib/storage";
 import { getConfig } from "../lib/config.functions";
 
@@ -18,7 +18,10 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     }
   });
 
-  const { isLoading, data } = useQuery<AppSettings>({
+  // Check if localStorage has any settings (like a logo)
+  const hasCachedSettings = Object.keys(localSettings).length > 0;
+
+  const { isLoading: isFetching, data } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: localSettings,
     staleTime: 30 * 1000, // 30s before refetching, makes it much faster
@@ -48,6 +51,9 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
       }
     },
   });
+
+  // Only show loading if we have NO cached settings (first load ever)
+  const isLoading = !hasCachedSettings && isFetching;
 
   return { settings: data ?? localSettings, isLoading };
 }
