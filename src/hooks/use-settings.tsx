@@ -8,9 +8,15 @@ import { getConfig } from "../lib/config.functions";
  * admin. localStorage is used only as an instant-render cache.
  */
 export function useSettings(): AppSettings {
-  const { data } = useQuery<AppSettings>({
+  const { data, isLoading, error } = useQuery<AppSettings>({
     queryKey: ["app-config"],
-    initialData: () => loadSettings(),
+    initialData: () => {
+      try {
+        return loadSettings();
+      } catch {
+        return {};
+      }
+    },
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
@@ -18,6 +24,7 @@ export function useSettings(): AppSettings {
     refetchInterval: 15 * 1000,
     queryFn: async () => {
       const cfg = await getConfig();
+      console.log("useSettings getConfig result:", cfg);
       const next: AppSettings = {
         logo: cfg.logo ?? undefined,
         background: cfg.background ?? undefined,
@@ -28,10 +35,12 @@ export function useSettings(): AppSettings {
         paymentInfo: cfg.paymentInfo,
         paymentStatus: cfg.paymentStatus,
       };
+      console.log("useSettings saving next:", next);
       saveSettings(next);
       return next;
     },
   });
 
+  console.log("useSettings returning data:", { data, isLoading, error });
   return data ?? {};
 }

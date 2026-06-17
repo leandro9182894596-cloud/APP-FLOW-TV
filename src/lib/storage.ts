@@ -91,7 +91,33 @@ export function loadSettings(): AppSettings {
 }
 export function saveSettings(settings: AppSettings) {
   if (!isBrowser) return;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn("Storage quota exceeded - not saving large data URLs to localStorage");
+    // If we can't save, just keep the in-memory data and don't crash
+    const safeSettings = { ...settings };
+    // Remove large data URLs to save space
+    if (safeSettings.logo?.startsWith('data:')) delete safeSettings.logo;
+    if (safeSettings.background?.startsWith('data:')) delete safeSettings.background;
+    if (safeSettings.banner?.startsWith('data:')) delete safeSettings.banner;
+    if (safeSettings.banners) {
+      safeSettings.banners = safeSettings.banners.map(b => ({
+        ...b,
+        image: b.image?.startsWith('data:') ? undefined : b.image
+      })).filter(b => b.image !== undefined) as Array<{ image: string; link?: string }>;
+    }
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(safeSettings));
+    } catch (e2) {
+      console.error("Still can't save to localStorage - clearing old cache");
+      // Clear old cache if still failing
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('flowtv.cache.'))
+        .forEach(k => localStorage.removeItem(k));
+    }
+  }
   window.dispatchEvent(new Event(SETTINGS_EVENT));
 }
 

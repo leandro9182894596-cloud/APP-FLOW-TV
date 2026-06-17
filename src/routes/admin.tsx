@@ -225,13 +225,13 @@ function AdminPage() {
 
           <ImageField
             label="Logo"
-            help="Aparece no menu e na tela inicial."
+            help="Tamanho recomendado: 512x512 pixels. Aparece no menu e na tela inicial."
             value={form.logo}
             onChange={(v) => update({ logo: v })}
           />
           <ImageField
             label="Plano de fundo"
-            help="Imagem de fundo do aplicativo."
+            help="Tamanho recomendado: 1920x1080 pixels. Imagem de fundo do aplicativo."
             value={form.background}
             onChange={(v) => update({ background: v })}
           />

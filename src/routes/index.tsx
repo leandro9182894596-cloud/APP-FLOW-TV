@@ -5,14 +5,12 @@ import { motion } from "framer-motion";
 import { AppShell } from "../components/AppShell";
 import { ContentCard } from "../components/ContentCard";
 import { SeriesCard } from "../components/SeriesCard";
-import { TelaRenovacao } from "../components/TelaRenovacao";
 import { useRequireAccount } from "../hooks/use-require-account";
 import { useSettings } from "../hooks/use-settings";
 import { useCachedQuery, accountKey } from "../lib/queries";
 import { getVodStreams, getSeries, getLiveStreams, proxiedImage, type Account, type SeriesItem } from "../lib/xtream";
 import { loadProgress, removeProgress, type ProgressEntry } from "../lib/storage";
 import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,7 +26,6 @@ function HomePage() {
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
   const settings = useSettings();
-  const queryClient = useQueryClient();
 
   const movies = useCachedQuery(`${key}:vod:all`, () => getVodStreams(account!), { enabled: !!account });
   const series = useCachedQuery(`${key}:series:all`, () => getSeries(account!), { enabled: !!account });
@@ -38,32 +35,6 @@ function HomePage() {
   useEffect(() => {
     setProgress(loadProgress());
   }, []);
-
-  // Verifica se precisa mostrar tela de renovação
-  const [mostrarRenovacao, setMostrarRenovacao] = useState(false);
-  
-  useEffect(() => {
-    if (settings.paymentInfo) {
-      try {
-        const dataVencimento = new Date(settings.paymentInfo.dataVencimento);
-        const hoje = new Date();
-        const diasAteVencimento = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Mostra tela se venceu ou está prestes a vencer (menos de 3 dias)
-        if (diasAteVencimento <= 3) {
-          setMostrarRenovacao(true);
-        }
-      } catch (e) {
-        console.error("Erro ao verificar data de vencimento:", e);
-      }
-    }
-  }, [settings.paymentInfo]);
-
-  const handlePaymentApproved = () => {
-    setMostrarRenovacao(false);
-    // Recarrega as configurações para atualizar o status
-    queryClient.invalidateQueries({ queryKey: ["app-config"] });
-  };
 
   const featured = useMemo(() => {
     const list = movies.data ?? [];
@@ -101,14 +72,7 @@ function HomePage() {
 
   return (
     <>
-      {/* Tela de Renovação */}
-      {settings.paymentInfo && (
-        <TelaRenovacao
-          paymentInfo={settings.paymentInfo}
-          onPaymentApproved={handlePaymentApproved}
-          isOpen={mostrarRenovacao}
-        />
-      )}
+      {/* Tela de Renovação desativada */}
       
       <AppShell>
         {/* Hero */}
@@ -152,14 +116,28 @@ function HomePage() {
 
         {/* Ad banner — below the featured hero */}
         {(() => {
+          console.log("DEBUG Settings:", settings);
+          console.log("DEBUG settings.banners:", settings.banners);
+          console.log("DEBUG settings.banner:", settings.banner);
+          
           // Tenta banners múltiplos primeiro, senão usa o banner único
           let bannersList: Array<{ image: string; link?: string }> = [];
           
           if (settings.banners && Array.isArray(settings.banners) && settings.banners.length > 0) {
-            bannersList = settings.banners.filter((b: any) => b && b.image);
+            bannersList = settings.banners.filter((b: any) => {
+              // More flexible check for banner image
+              if (!b) return false;
+              console.log("DEBUG checking banner:", b);
+              return b.image || b.banner || b.src || b.url;
+            }).map((b: any) => ({
+              image: b.image || b.banner || b.src || b.url,
+              link: b.link || b.href || b.url
+            }));
           } else if (settings.banner) {
             bannersList = [{ image: settings.banner, link: settings.bannerLink }];
           }
+          
+          console.log("DEBUG bannersList:", bannersList);
           
           if (bannersList.length > 0) {
             return (
@@ -168,7 +146,17 @@ function HomePage() {
               </div>
             );
           }
-          return null;
+          
+          // Debug banner placeholder
+          return (
+            <div className="px-4 pt-6 lg:px-12">
+              <div className="relative overflow-hidden rounded-2xl border border-dashed border-primary/30 p-8 text-center">
+                <p className="text-muted-foreground">
+                  Nenhum banner encontrado. Adicione um na página /admin!
+                </p>
+              </div>
+            </div>
+          );
         })()}
 
         <div className="space-y-10 px-4 py-8 lg:px-12">
@@ -415,7 +403,7 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
           <svg className="h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span className="text-sm font-medium text-muted-foreground">{currentBanner.name || 'Anúncio'}</span>
+          <span className="text-sm font-medium text-muted-foreground">Anúncio</span>
         </div>
       )}
       
