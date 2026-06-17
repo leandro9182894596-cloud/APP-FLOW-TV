@@ -398,16 +398,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
-  // ---- auto fullscreen + landscape when playback starts (movies/series) ----
-  const autoFsDone = useRef(false);
-  useEffect(() => {
-    if (!lockLandscape || autoFsDone.current || !playing) return;
-    autoFsDone.current = true;
-    const el = containerRef.current;
-    if (el && !document.fullscreenElement) {
-      el.requestFullscreen().catch(() => {});
-    }
-  }, [playing, lockLandscape]);
+  // ---- auto fullscreen + landscape removed due to user gesture requirements ----
 
   const showControls = useCallback(() => {
     setControlsVisible(true);
