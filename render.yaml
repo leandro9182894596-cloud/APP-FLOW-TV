@@ -10,3 +10,7 @@ services:
         value: 20
       - key: NODE_ENV
         value: production
+      - key: VITE_SUPABASE_URL
+        value: https://kvyloomugemyyokkervq.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_5gEE3MzDtpkqUJb6ENfqzg_yEKKvIu2
