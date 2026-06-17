@@ -14,3 +14,7 @@ services:
         value: https://kvyloomugemyyokkervq.supabase.co
       - key: VITE_SUPABASE_PUBLISHABLE_KEY
         value: sb_publishable_5gEE3MzDtpkqUJb6ENfqzg_yEKKvIu2
+      - key: SUPABASE_URL
+        value: https://kvyloomugemyyokkervq.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_5gEE3MzDtpkqUJb6ENfqzg_yEKKvIu2
