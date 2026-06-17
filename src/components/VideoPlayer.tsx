@@ -426,15 +426,37 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
 
   // Auto-fullscreen on mobile when playing starts
   useEffect(() => {
-    if (isMobile && playing && containerRef.current && !document.fullscreenElement) {
+    if (isMobile && playing && videoRef.current && !document.fullscreenElement) {
       const enterFullscreen = async () => {
         try {
-          await containerRef.current!.requestFullscreen();
-          // Try to force landscape after entering fullscreen
+          // First try with the video element directly for better mobile compatibility
+          const video = videoRef.current!;
+          
+          // Try video-specific fullscreen first (iOS/Safari likes this)
+          if ((video as any).webkitEnterFullscreen) {
+            (video as any).webkitEnterFullscreen();
+          }
+          // Then try container with various vendor prefixes
+          else if (containerRef.current) {
+            const container = containerRef.current;
+            if ((container as any).webkitRequestFullscreen) {
+              (container as any).webkitRequestFullscreen();
+            } else if ((container as any).mozRequestFullScreen) {
+              (container as any).mozRequestFullScreen();
+            } else if ((container as any).msRequestFullscreen) {
+              (container as any).msRequestFullscreen();
+            } else {
+              await container.requestFullscreen();
+            }
+          }
+          
+          // Try to force landscape multiple times
           setTimeout(forceLandscape, 100);
-          setTimeout(forceLandscape, 500);
+          setTimeout(forceLandscape, 300);
+          setTimeout(forceLandscape, 600);
+          setTimeout(forceLandscape, 1000);
         } catch {
-          // Ignore
+          // Ignore - fullscreen might be blocked
         }
       };
       enterFullscreen();
