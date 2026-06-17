@@ -8,7 +8,7 @@ import { getConfig } from "../lib/config.functions";
  * admin. localStorage is used only as an instant-render cache.
  */
 export function useSettings(): AppSettings {
-  const { data, isLoading, error } = useQuery<AppSettings>({
+  const { data } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: () => {
       try {
@@ -17,11 +17,11 @@ export function useSettings(): AppSettings {
         return {};
       }
     },
-    staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000, // 30s before refetching, makes it much faster
+    refetchOnMount: true, // Still refetch on first mount to get latest
+    refetchOnWindowFocus: false, // Disable to reduce unnecessary network calls
     refetchOnReconnect: true,
-    refetchInterval: 15 * 1000,
+    refetchInterval: 60 * 1000, // Only refetch every 60s, not 15s
     queryFn: async () => {
       const cfg = await getConfig();
       const next: AppSettings = {

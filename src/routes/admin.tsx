@@ -93,6 +93,31 @@ function AdminPage() {
 
   const onSave = async () => {
     setSaving(true);
+
+    // Optimistic UI: Update cache IMMEDIATELY for instant feedback
+    const optimisticSettings = {
+      logo: form.logo ?? undefined,
+      background: form.background ?? undefined,
+      banner: form.banner ?? undefined,
+      bannerLink: form.bannerLink,
+      banners: form.banners.length > 0 ? form.banners : undefined,
+      dnsList: form.dns,
+      paymentInfo: form.paymentInfo,
+      paymentStatus: form.paymentStatus,
+    };
+    qc.setQueryData(["app-config"], optimisticSettings);
+    saveSettings(optimisticSettings); // Save to localStorage instantly
+
+    toast.success("Configurações salvas!", {
+      description: "As alterações já estão disponíveis para você.",
+    });
+
+    if (newPassword.trim()) {
+      setPassword(newPassword.trim());
+      setNewPassword("");
+    }
+
+    // Then send request to server in background
     try {
       await saveConfig({
         data: {
@@ -108,16 +133,10 @@ function AdminPage() {
           newPassword: newPassword.trim() || undefined,
         },
       });
-      if (newPassword.trim()) {
-        setPassword(newPassword.trim());
-        setNewPassword("");
-      }
-      await qc.invalidateQueries({ queryKey: ["app-config"] });
-      toast.success("Configurações salvas", {
-        description: "Configurações atualizadas para todos os usuários.",
-      });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao salvar.");
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar no servidor.");
+      // Revert optimistic update on error
+      await qc.invalidateQueries({ queryKey: ["app-config"] });
     } finally {
       setSaving(false);
     }
