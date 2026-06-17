@@ -21,10 +21,10 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
   // Check if localStorage has any settings (like a logo)
   const hasCachedSettings = Object.keys(localSettings).length > 0;
 
-  const { isLoading: isFetching, data } = useQuery<AppSettings>({
+  const { isLoading: isFetching, data, refetch } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: localSettings,
-    staleTime: 30 * 1000, // 30s before refetching, makes it much faster
+    staleTime: 0, // Refetch immediately on mount
     refetchOnMount: true, // Still refetch on first mount to get latest
     refetchOnWindowFocus: false, // Disable to reduce unnecessary network calls
     refetchOnReconnect: true,
@@ -51,6 +51,11 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
       }
     },
   });
+
+  // Refetch on mount to ensure we get the latest settings
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Only show loading if we have NO cached settings (first load ever)
   const isLoading = !hasCachedSettings && isFetching;
