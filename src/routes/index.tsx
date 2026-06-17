@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Canais ao vivo, filmes e séries com player inteligente no FLOW TV." },
     ],
   }),
-  component: HomePage,
+  component: Home,
 });
 
 function Home() {
