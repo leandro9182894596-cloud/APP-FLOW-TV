@@ -101,11 +101,19 @@ async function handle(request: Request): Promise<Response> {
 
   let upstream: Response;
   try {
+    const controller = new AbortController();
+    // Timeout de 30s para streams, 10s para imagens
+    const timeoutMs = looksLikeImage ? 10000 : 30000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
     upstream = await fetch(target, {
       method: request.method === "HEAD" ? "HEAD" : "GET",
       headers: upstreamHeaders,
       redirect: "follow",
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
   } catch {
     return new Response("Upstream connection failed", { status: 502 });
   }
@@ -135,6 +143,11 @@ async function handle(request: Request): Promise<Response> {
     if (v) headers.set(h, v);
   }
   if (!headers.has("Accept-Ranges")) headers.set("Accept-Ranges", "bytes");
+  
+  // Cache para imagens: 7 dias
+  if (looksLikeImage) {
+    headers.set("Cache-Control", "public, max-age=604800, immutable");
+  }
 
   return new Response(upstream.body, { status: upstream.status, headers });
 }

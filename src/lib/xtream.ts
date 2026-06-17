@@ -382,8 +382,8 @@ export function imageCandidates(url?: string): string[] {
   const u = url.trim();
   if (!u) return [];
   if (u.startsWith("data:") || u.startsWith("blob:") || u.startsWith("/api/public/stream")) return [u];
-  // Keep SSR and browser markup equal, and route remote covers through our HTTPS proxy.
-  if (/^https:\/\//i.test(u)) return [`/api/public/stream?url=${encodeURIComponent(u)}&kind=image`, u];
+  // Only proxy HTTP images (mixed content issue)
+  if (/^https:\/\//i.test(u)) return [u]; // HTTPS images don't need proxy
   if (/^http:\/\//i.test(u)) return [`/api/public/stream?url=${encodeURIComponent(u)}&kind=image`];
   return [u];
 }
