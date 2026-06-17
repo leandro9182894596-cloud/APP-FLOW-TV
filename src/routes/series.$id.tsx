@@ -1,4 +1,4 @@
-import { createFileRoute, useParams, useRouteState, Link } from "@tanstack/react-router";
+import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Play, ArrowLeft, Star, Heart, ChevronDown } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -25,7 +25,6 @@ interface FlatEpisode extends SeriesEpisode {
 
 function SeriesDetailPage() {
   const { id } = useParams({ from: "/series/$id" });
-  const state = useRouteState({ from: "/series/$id" }) as { resume?: boolean; episodeId?: string; position?: number };
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
   const seriesId = Number(id);
@@ -38,7 +37,7 @@ function SeriesDetailPage() {
   const [season, setSeason] = useState<number | null>(null);
   const [current, setCurrent] = useState<FlatEpisode | null>(null);
   const [fav, setFav] = useState(false);
-  const [start, setStart] = useState(state?.position || 0);
+  const [start, setStart] = useState(0);
   const lastSave = useRef(0);
 
   const data = info.data;
@@ -131,13 +130,14 @@ function SeriesDetailPage() {
 
   // Auto-play from continue watching
   useEffect(() => {
-    if (state?.resume && state.episodeId && info.data && !current) {
-      const ep = flatEpisodes.find((e) => e.id === state.episodeId);
+    if (info.data && resume && resume.episodeId && !current) {
+      const ep = flatEpisodes.find((e) => e.id === resume.episodeId);
       if (ep) {
-        playEpisode(ep, state.position || 0);
+        setStart(resume.position || 0);
+        playEpisode(ep, resume.position || 0);
       }
     }
-  }, [state, info.data, flatEpisodes, current]);
+  }, [info.data, resume, flatEpisodes, current]);
 
   const resumeEpisode = () => {
     if (!resume?.episodeId) return;

@@ -171,7 +171,6 @@ function HomePage() {
                 <ContentCard
                   to={p.type === "movie" ? "/movie/$id" : "/series/$id"}
                   params={{ id: String(p.refId) }}
-                  state={p.type === "movie" ? { resume: true } : { resume: true, episodeId: p.episodeId, position: p.position }}
                   title={p.title}
                   image={p.poster}
                   progress={p.duration ? p.position / p.duration : 0}
