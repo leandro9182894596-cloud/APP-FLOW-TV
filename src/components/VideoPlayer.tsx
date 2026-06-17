@@ -383,6 +383,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
   }, [onProgress, onEnded]);
 
   // ---- fullscreen and rotation ----
+  
+  // Effective lockLandscape: true on mobile by default (declare first!)
+  const effectiveLockLandscape = lockLandscape ?? isMobile;
+
   const forceLandscape = useCallback(async () => {
     try {
       // Try multiple orientation lock APIs
@@ -436,9 +440,6 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
       enterFullscreen();
     }
   }, [isMobile, playing, forceLandscape]);
-
-  // Effective lockLandscape: true on mobile by default
-  const effectiveLockLandscape = lockLandscape ?? isMobile;
 
   // ---- auto fullscreen + landscape removed due to user gesture requirements ----
 
