@@ -162,6 +162,24 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function Brand({ compact = false }: { compact?: boolean }) {
   const { settings } = useSettings();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  
+  // Wait for client-side mount to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <Link to="/" className="focusable flex items-center gap-2.5">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
+          <MonitorPlay className="h-5 w-5" />
+        </span>
+        <span
+          className={`font-display ${compact ? "text-lg" : "text-xl"} font-extrabold tracking-tight`}
+        >
+          FLOW<span className="text-gradient">TV</span>
+        </span>
+      </Link>
+    );
+  }
   
   // Always render custom logo if it exists, no extra state
   if (settings.logo) {
