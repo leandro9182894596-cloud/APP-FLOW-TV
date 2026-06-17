@@ -1,4 +1,4 @@
-import { createFileRoute, useParams, Link } from "@tanstack/react-router";
+import { createFileRoute, useParams, useRouteState, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Play, ArrowLeft, Star, Clock, Heart } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/movie/$id")({
 
 function MoviePage() {
   const { id } = useParams({ from: "/movie/$id" });
+  const state = useRouteState({ from: "/movie/$id" }) as { resume?: boolean };
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
   const streamId = Number(id);
@@ -30,7 +31,7 @@ function MoviePage() {
     maxAgeMs: 24 * 60 * 60 * 1000,
   });
 
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(state?.resume === true);
   const [fav, setFav] = useState(false);
   const progressKey = `movie:${streamId}`;
   const resume = getProgress(progressKey);
@@ -39,6 +40,12 @@ function MoviePage() {
   useEffect(() => {
     setFav(isFavorite(`movie:${streamId}`));
   }, [streamId]);
+
+  useEffect(() => {
+    if (state?.resume === true && info.data && !playing) {
+      setPlaying(true);
+    }
+  }, [state, info.data, playing]);
 
   if (!ready || !account) {
     return (
