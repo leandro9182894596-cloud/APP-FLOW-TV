@@ -85,9 +85,10 @@ function LoginPage() {
       <div className="pointer-events-none absolute -left-40 top-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          {settings.logo ? (
+          {/* Always render same structure to avoid hydration mismatch */}
+          {mounted && settings.logo ? (
             <img src={settings.logo} alt="Logo" className="mb-4 h-20 w-auto max-w-[220px] object-contain" />
           ) : (
             <>
