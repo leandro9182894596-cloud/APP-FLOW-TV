@@ -31,8 +31,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/login" });
   };
 
-  // Show loading screen while fetching settings from server
-  if (isLoading) {
+  // Show loading screen while fetching settings from server OR before hydration
+  if (isLoading || !mounted) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
         <div className="text-center space-y-4">
