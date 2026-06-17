@@ -58,25 +58,6 @@ function SeriesDetailPage() {
       .sort((a, b) => a - b);
   }, [data]);
 
-  useEffect(() => {
-    if (season === null && seasonNumbers.length) {
-      // If we have a resume episode, set that season first
-      if (resume?.episodeId) {
-        const ep = flatEpisodes.find((e) => e.id === resume.episodeId);
-        if (ep) {
-          setSeason(ep.seasonNum);
-          return;
-        }
-      }
-      // Otherwise default to first season
-      setSeason(seasonNumbers[0]);
-    }
-  }, [seasonNumbers, season, resume, flatEpisodes]);
-
-  useEffect(() => {
-    setFav(isFavorite(`series:${seriesId}`));
-  }, [seriesId]);
-
   const flatEpisodes = useMemo<FlatEpisode[]>(() => {
     if (!data?.episodes) return [];
     return seasonNumbers.flatMap((sn) =>
@@ -96,6 +77,25 @@ function SeriesDetailPage() {
   const cover = proxiedImage(data?.info?.cover);
   const progressKey = `series:${seriesId}`;
   const resume = getProgress(progressKey);
+
+  useEffect(() => {
+    if (season === null && seasonNumbers.length) {
+      // If we have a resume episode, set that season first
+      if (resume?.episodeId) {
+        const ep = flatEpisodes.find((e) => e.id === resume.episodeId);
+        if (ep) {
+          setSeason(ep.seasonNum);
+          return;
+        }
+      }
+      // Otherwise default to first season
+      setSeason(seasonNumbers[0]);
+    }
+  }, [seasonNumbers, season, resume, flatEpisodes]);
+
+  useEffect(() => {
+    setFav(isFavorite(`series:${seriesId}`));
+  }, [seriesId]);
 
   const playEpisode = (ep: FlatEpisode, startAt = 0) => {
     setCurrent(ep);
