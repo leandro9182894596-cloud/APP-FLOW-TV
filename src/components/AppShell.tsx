@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { userInfo, logout } = useAccount();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { settings, isLoading } = useSettings();
+  const { settings } = useSettings();
 
   const hasBg = !!settings.background;
 
@@ -25,20 +25,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     logout();
     navigate({ to: "/login" });
   };
-
-  // Show loading screen while fetching settings from server
-  if (isLoading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
-            <MonitorPlay className="h-8 w-8" />
-          </div>
-          <p className="font-display text-xl font-extrabold">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`relative flex min-h-screen ${hasBg ? "bg-black" : "bg-background"}`}>

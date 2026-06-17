@@ -18,17 +18,14 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     }
   });
 
-  // Check if localStorage has any settings (like a logo)
-  const hasCachedSettings = Object.keys(localSettings).length > 0;
-
-  const { isLoading: isFetching, data, refetch } = useQuery<AppSettings>({
+  const { data, refetch } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: localSettings,
-    staleTime: 0, // Refetch immediately on mount
-    refetchOnMount: true, // Still refetch on first mount to get latest
-    refetchOnWindowFocus: false, // Disable to reduce unnecessary network calls
+    staleTime: 60 * 1000, // 1 minuto para não refetchar todo segundo
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    refetchInterval: 60 * 1000, // Only refetch every 60s, not 15s
+    refetchInterval: 5 * 60 * 1000, // Refetch a cada 5 minutos
     queryFn: async () => {
       try {
         const cfg = await getConfig();
@@ -57,8 +54,6 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     refetch();
   }, [refetch]);
 
-  // Only show loading if we have NO cached settings (first load ever)
-  const isLoading = !hasCachedSettings && isFetching;
-
-  return { settings: data ?? localSettings, isLoading };
+  // Never show loading screen — always use cached settings immediately
+  return { settings: data ?? localSettings, isLoading: false };
 }

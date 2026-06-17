@@ -19,7 +19,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { login, account, ready } = useAccount();
-  const { settings, isLoading } = useSettings();
+  const { settings } = useSettings();
   const dnsList = useMemo(
     () => (settings.dnsList ?? []).map((dns) => dns.trim()).filter(Boolean),
     [settings.dnsList],
@@ -62,20 +62,6 @@ function LoginPage() {
       setLoading(false);
     }
   };
-
-  // Show loading screen while fetching settings
-  if (isLoading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
-            <MonitorPlay className="h-8 w-8" />
-          </div>
-          <p className="font-display text-xl font-extrabold">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
