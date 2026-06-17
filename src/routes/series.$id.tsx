@@ -9,6 +9,15 @@ import { getSeriesInfo, seriesStreamUrl, proxiedImage, type SeriesEpisode } from
 import { getProgress, saveProgress, toggleFavorite, isFavorite } from "../lib/storage";
 import { toast } from "sonner";
 
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+  return `${h > 0 ? h + ":" : ""}${mm}:${String(s).padStart(2, "0")}`;
+}
+
 export const Route = createFileRoute("/series/$id")({
   head: () => ({
     meta: [
@@ -50,8 +59,19 @@ function SeriesDetailPage() {
   }, [data]);
 
   useEffect(() => {
-    if (season === null && seasonNumbers.length) setSeason(seasonNumbers[0]);
-  }, [seasonNumbers, season]);
+    if (season === null && seasonNumbers.length) {
+      // If we have a resume episode, set that season first
+      if (resume?.episodeId) {
+        const ep = flatEpisodes.find((e) => e.id === resume.episodeId);
+        if (ep) {
+          setSeason(ep.seasonNum);
+          return;
+        }
+      }
+      // Otherwise default to first season
+      setSeason(seasonNumbers[0]);
+    }
+  }, [seasonNumbers, season, resume, flatEpisodes]);
 
   useEffect(() => {
     setFav(isFavorite(`series:${seriesId}`));
@@ -128,16 +148,8 @@ function SeriesDetailPage() {
     toast.success(added ? "Adicionado aos favoritos" : "Removido dos favoritos");
   };
 
-  // Auto-play from continue watching
-  useEffect(() => {
-    if (info.data && resume && resume.episodeId && !current) {
-      const ep = flatEpisodes.find((e) => e.id === resume.episodeId);
-      if (ep) {
-        setStart(resume.position || 0);
-        playEpisode(ep, resume.position || 0);
-      }
-    }
-  }, [info.data, resume, flatEpisodes, current]);
+  // Do NOT auto-play from continue watching - just show the episodes page
+  // with the correct season/episode highlighted instead
 
   const resumeEpisode = () => {
     if (!resume?.episodeId) return;
@@ -272,42 +284,67 @@ function SeriesDetailPage() {
                     </div>
 
                     <ul className="grid grid-cols-1 gap-[clamp(0.75rem,1.2vw,1.25rem)] pb-[clamp(2rem,4vw,4rem)] lg:grid-cols-2 2xl:grid-cols-3">
-                      {episodesOfSeason.map((ep) => (
-                        <li key={ep.id}>
-                          <button
-                            onClick={() => playEpisode({ ...ep, seasonNum: season ?? 1 })}
-                            className="focusable group flex w-full items-center gap-[clamp(0.75rem,1.2vw,1.25rem)] rounded-2xl border border-white/10 bg-white/5 p-[clamp(0.6rem,1vw,1rem)] text-left backdrop-blur-md transition-all duration-200 hover:scale-[1.02] hover:border-primary/60 hover:bg-white/10 focus-visible:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/50"
-                          >
-                            <div className="relative aspect-video w-[36%] max-w-[200px] shrink-0 overflow-hidden rounded-xl bg-secondary">
-                              {ep.info?.movie_image ? (
-                                <img
-                                  src={proxiedImage(ep.info.movie_image)}
-                                  alt=""
-                                  loading="lazy"
-                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
-                              ) : (
-                                <span className="grid h-full w-full place-items-center">
-                                  <Play className="h-[2em] w-[2em] text-muted-foreground" />
+                      {episodesOfSeason.map((ep) => {
+                        // Get progress for this episode specifically
+                        const epProgressKey = `series:${seriesId}`;
+                        const epProgress = getProgress(epProgressKey);
+                        const isResumed = epProgress?.episodeId === ep.id;
+                        const progress = isResumed && epProgress?.duration ? (epProgress.position / epProgress.duration) : 0;
+                        
+                        return (
+                          <li key={ep.id}>
+                            <button
+                              onClick={() => playEpisode({ ...ep, seasonNum: season ?? 1 })}
+                              className={`focusable group flex w-full items-center gap-[clamp(0.75rem,1.2vw,1.25rem)] rounded-2xl border bg-white/5 p-[clamp(0.6rem,1vw,1rem)] text-left backdrop-blur-md transition-all duration-200 hover:scale-[1.02] hover:bg-white/10 focus-visible:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/50 ${isResumed ? "border-primary/60 shadow-glow" : "border-white/10 hover:border-primary/60"}`}
+                            >
+                              <div className="relative aspect-video w-[36%] max-w-[200px] shrink-0 overflow-hidden rounded-xl bg-secondary">
+                                {ep.info?.movie_image ? (
+                                  <img
+                                    src={proxiedImage(ep.info.movie_image)}
+                                    alt=""
+                                    loading="lazy"
+                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : (
+                                  <span className="grid h-full w-full place-items-center">
+                                    <Play className="h-[2em] w-[2em] text-muted-foreground" />
+                                  </span>
+                                )}
+                                <span className="absolute inset-0 grid place-items-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <Play className="h-[2.2em] w-[2.2em] text-white" fill="currentColor" />
                                 </span>
-                              )}
-                              <span className="absolute inset-0 grid place-items-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                                <Play className="h-[2.2em] w-[2.2em] text-white" fill="currentColor" />
-                              </span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[clamp(0.95rem,1.4vw,1.25rem)] font-bold text-white">
-                                {ep.episode_num}. {ep.title}
-                              </p>
-                              {ep.info?.plot && (
-                                <p className="mt-1 line-clamp-2 text-[clamp(0.8rem,1.2vw,1rem)] text-white/70">
-                                  {ep.info.plot}
+                                {progress > 0 && (
+                                  <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20">
+                                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, progress * 100)}%` }} />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="space-y-1">
+                                <p className="text-[clamp(0.95rem,1.4vw,1.25rem)] font-bold text-white flex items-center gap-2 flex-wrap">
+                                  {ep.episode_num}. {ep.title}
                                 </p>
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      ))}
+                                {isResumed && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-white bg-primary px-3 py-1 rounded-full">
+                                      ▶ Continuar assistindo
+                                    </span>
+                                    <span className="text-xs text-primary">
+                                      Parou em: {formatTime(epProgress.position)}
+                                    </span>
+                                  </div>
+                                )}
+                                {ep.info?.plot && (
+                                  <p className="mt-1 line-clamp-2 text-[clamp(0.8rem,1.2vw,1rem)] text-white/70">
+                                    {ep.info.plot}
+                                  </p>
+                                )}
+                              </div>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
