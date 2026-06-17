@@ -87,19 +87,21 @@ function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          {/* Always render same structure to avoid hydration mismatch */}
-          {mounted && settings.logo ? (
-            <img src={settings.logo} alt="Logo" className="mb-4 h-20 w-auto max-w-[220px] object-contain" />
-          ) : (
-            <>
-              <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
-                <MonitorPlay className="h-8 w-8" />
-              </span>
-              <h1 className="font-display text-4xl font-extrabold tracking-tight">
-                FLOW<span className="text-gradient">TV</span>
-              </h1>
-            </>
-          )}
+          {/* Render default logo always, then swap with custom logo only on client */}
+          <div suppressHydrationWarning>
+            {mounted && settings.logo ? (
+              <img src={settings.logo} alt="Logo" className="mb-4 h-20 w-auto max-w-[220px] object-contain" />
+            ) : (
+              <>
+                <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                  <MonitorPlay className="h-8 w-8" />
+                </span>
+                <h1 className="font-display text-4xl font-extrabold tracking-tight">
+                  FLOW<span className="text-gradient">TV</span>
+                </h1>
+              </>
+            )}
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">Seu universo IPTV em qualquer tela</p>
         </div>
 

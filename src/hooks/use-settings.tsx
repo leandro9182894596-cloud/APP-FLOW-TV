@@ -21,6 +21,9 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
   // Check if localStorage has any settings (like a logo)
   const hasCachedSettings = Object.keys(localSettings).length > 0;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const { isLoading: isFetching, data } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: localSettings,
@@ -54,6 +57,11 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
 
   // Only show loading if we have NO cached settings (first load ever)
   const isLoading = !hasCachedSettings && isFetching;
+
+  // Before mount, return empty settings to avoid hydration mismatch
+  if (!mounted) {
+    return { settings: {}, isLoading: false };
+  }
 
   return { settings: data ?? localSettings, isLoading };
 }
