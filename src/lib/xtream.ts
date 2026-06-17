@@ -257,37 +257,51 @@ export interface VodInfo {
 }
 
 // ---------- Content fetchers ----------
-export const getLiveCategories = (a: Account) =>
-  apiCall<Category[]>(a, { action: "get_live_categories" });
-export const getVodCategories = (a: Account) =>
-  apiCall<Category[]>(a, { action: "get_vod_categories" });
-export const getSeriesCategories = (a: Account) =>
-  apiCall<Category[]>(a, { action: "get_series_categories" });
+function normalizeCategories(list: unknown): Category[] {
+  const arr = getArrayFromData(list);
+  return arr.map((item) => item as Category);
+}
 
-export const getLiveStreams = async (a: Account, categoryId?: string) =>
-  normalizeLiveStreams(
-    await apiCall<LiveStream[]>(a, {
-      action: "get_live_streams",
-      ...(categoryId ? { category_id: categoryId } : {}),
-    }),
-    a.base,
-  );
-export const getVodStreams = async (a: Account, categoryId?: string) =>
-  normalizeVodStreams(
-    await apiCall<VodStream[]>(a, {
-      action: "get_vod_streams",
-      ...(categoryId ? { category_id: categoryId } : {}),
-    }),
-    a.base,
-  );
-export const getSeries = async (a: Account, categoryId?: string) =>
-  normalizeSeriesList(
-    await apiCall<SeriesItem[]>(a, {
-      action: "get_series",
-      ...(categoryId ? { category_id: categoryId } : {}),
-    }),
-    a.base,
-  );
+export const getLiveCategories = async (a: Account) => {
+  const data = await apiCall<unknown>(a, { action: "get_live_categories" });
+  console.log("getLiveCategories received:", data);
+  return normalizeCategories(data);
+};
+export const getVodCategories = async (a: Account) => {
+  const data = await apiCall<unknown>(a, { action: "get_vod_categories" });
+  console.log("getVodCategories received:", data);
+  return normalizeCategories(data);
+};
+export const getSeriesCategories = async (a: Account) => {
+  const data = await apiCall<unknown>(a, { action: "get_series_categories" });
+  console.log("getSeriesCategories received:", data);
+  return normalizeCategories(data);
+};
+
+export const getLiveStreams = async (a: Account, categoryId?: string) => {
+  const data = await apiCall<unknown>(a, {
+    action: "get_live_streams",
+    ...(categoryId ? { category_id: categoryId } : {}),
+  });
+  console.log("getLiveStreams received:", data);
+  return normalizeLiveStreams(data, a.base);
+};
+export const getVodStreams = async (a: Account, categoryId?: string) => {
+  const data = await apiCall<unknown>(a, {
+    action: "get_vod_streams",
+    ...(categoryId ? { category_id: categoryId } : {}),
+  });
+  console.log("getVodStreams received:", data);
+  return normalizeVodStreams(data, a.base);
+};
+export const getSeries = async (a: Account, categoryId?: string) => {
+  const data = await apiCall<unknown>(a, {
+    action: "get_series",
+    ...(categoryId ? { category_id: categoryId } : {}),
+  });
+  console.log("getSeries received:", data);
+  return normalizeSeriesList(data, a.base);
+};
 
 export const getVodInfo = async (a: Account, vodId: number) =>
   normalizeVodInfo(await apiCall<VodInfo>(a, { action: "get_vod_info", vod_id: String(vodId) }), a.base);
@@ -312,29 +326,48 @@ function normalizeMediaUrl(url: string | undefined, base: string): string {
   }
 }
 
-function normalizeLiveStreams(list: LiveStream[], base: string): LiveStream[] {
-  return Array.isArray(list) ? list.map((item) => ({ ...item, stream_icon: normalizeMediaUrl(item.stream_icon, base) })) : [];
+function getArrayFromData(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object") {
+    if ("data" in data && Array.isArray(data.data)) return data.data;
+    if ("streams" in data && Array.isArray(data.streams)) return data.streams;
+    if ("series" in data && Array.isArray(data.series)) return data.series;
+    if ("categories" in data && Array.isArray(data.categories)) return data.categories;
+  }
+  return [];
 }
 
-function normalizeVodStreams(list: VodStream[], base: string): VodStream[] {
-  return Array.isArray(list) ? list.map((item) => ({ ...item, stream_icon: normalizeMediaUrl(item.stream_icon, base) })) : [];
+function normalizeLiveStreams(list: unknown, base: string): LiveStream[] {
+  const arr = getArrayFromData(list);
+  return arr.map((item) => {
+    const stream = item as LiveStream;
+    return { ...stream, stream_icon: normalizeMediaUrl(stream.stream_icon, base) };
+  });
 }
 
-function normalizeSeriesList(list: SeriesItem[], base: string): SeriesItem[] {
-  return Array.isArray(list)
-    ? list.map((item) => {
-        const cover = item.cover || item.cover_big || item.movie_image || item.stream_icon || item.poster_path || item.image;
-        return {
-          ...item,
-          cover: normalizeMediaUrl(cover, base),
-          cover_big: normalizeMediaUrl(item.cover_big, base),
-          movie_image: normalizeMediaUrl(item.movie_image, base),
-          stream_icon: normalizeMediaUrl(item.stream_icon, base),
-          poster_path: normalizeMediaUrl(item.poster_path, base),
-          image: normalizeMediaUrl(item.image, base),
-        };
-      })
-    : [];
+function normalizeVodStreams(list: unknown, base: string): VodStream[] {
+  const arr = getArrayFromData(list);
+  return arr.map((item) => {
+    const vod = item as VodStream;
+    return { ...vod, stream_icon: normalizeMediaUrl(vod.stream_icon, base) };
+  });
+}
+
+function normalizeSeriesList(list: unknown, base: string): SeriesItem[] {
+  const arr = getArrayFromData(list);
+  return arr.map((item) => {
+    const series = item as SeriesItem;
+    const cover = series.cover || series.cover_big || series.movie_image || series.stream_icon || series.poster_path || series.image;
+    return {
+      ...series,
+      cover: normalizeMediaUrl(cover, base),
+      cover_big: normalizeMediaUrl(series.cover_big, base),
+      movie_image: normalizeMediaUrl(series.movie_image, base),
+      stream_icon: normalizeMediaUrl(series.stream_icon, base),
+      poster_path: normalizeMediaUrl(series.poster_path, base),
+      image: normalizeMediaUrl(series.image, base),
+    };
+  });
 }
 
 function normalizeVodInfo(data: VodInfo, base: string): VodInfo {
