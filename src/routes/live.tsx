@@ -106,8 +106,64 @@ function LivePage() {
   return (
     <AppShell>
       <div className="grid gap-6 px-4 py-6 lg:grid-cols-[240px_340px_1fr] lg:px-12">
-        {/* Category selection */}
-        <div className={`min-w-0 ${showChannels ? "hidden lg:block" : "block"}`}>
+        {/* Player - Mobile: first, Desktop: third */}
+        <div className="lg:col-start-3 lg:sticky lg:top-20 lg:h-fit">
+          {selected ? (
+            <>
+              <VideoPlayer
+                ref={playerRef}
+                key={selected.stream_id}
+                source={{ url: liveStreamUrl(account, selected.stream_id), isLive: true }}
+                title={selected.name}
+                poster={proxiedImage(selected.stream_icon)}
+                onNext={filtered.length > 1 ? goNext : undefined}
+                nextLabel="Próximo canal"
+                onPrev={filtered.length > 1 ? goPrev : undefined}
+                prevLabel="Canal anterior"
+              />
+              <div className="mt-3 flex items-center gap-2 lg:hidden">
+                <button
+                  onClick={goPrev}
+                  className="focusable flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary/50"
+                >
+                  ‹ Anterior
+                </button>
+                <button
+                  onClick={goNext}
+                  className="focusable flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary/50"
+                >
+                  Próximo ›
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <h1 className="font-display text-xl font-bold">{selected.name}</h1>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => playerRef.current?.requestFullscreen()}
+                    className="focusable flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary/50"
+                  >
+                    <Maximize className="h-4 w-4" />
+                    Tela cheia
+                  </button>
+                  <button
+                    onClick={onFav}
+                    className="focusable flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary/50"
+                  >
+                    <Heart className={`h-4 w-4 ${fav ? "fill-primary text-primary" : ""}`} />
+                    {fav ? "Favorito" : "Favoritar"}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="grid aspect-video place-items-center rounded-xl bg-card">
+              <Tv className="h-10 w-10 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+
+        {/* Category selection - Mobile: second, Desktop: first */}
+        <div className={`min-w-0 lg:col-start-1 lg:row-start-1 ${showChannels ? "hidden lg:block" : "block"}`}>
           <h2 className="mb-3 font-display text-lg font-bold">Seleções</h2>
           {categories.isLoading && !categories.data ? (
             <div className="space-y-2">
@@ -149,8 +205,8 @@ function LivePage() {
           </div>
         </div>
 
-        {/* Channel list */}
-        <div className={`min-w-0 ${showChannels ? "block" : "hidden lg:block"}`}>
+        {/* Channel list - Mobile: third, Desktop: second */}
+        <div className={`min-w-0 lg:col-start-2 lg:row-start-1 ${showChannels ? "block" : "hidden lg:block"}`}>
           <div className="mb-3 flex items-center gap-2">
             <button
               onClick={() => setShowChannels(false)}
@@ -210,62 +266,6 @@ function LivePage() {
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-
-        {/* Player */}
-        <div className="lg:sticky lg:top-20 lg:h-fit">
-          {selected ? (
-            <>
-              <VideoPlayer
-                ref={playerRef}
-                key={selected.stream_id}
-                source={{ url: liveStreamUrl(account, selected.stream_id), isLive: true }}
-                title={selected.name}
-                poster={proxiedImage(selected.stream_icon)}
-                onNext={filtered.length > 1 ? goNext : undefined}
-                nextLabel="Próximo canal"
-                onPrev={filtered.length > 1 ? goPrev : undefined}
-                prevLabel="Canal anterior"
-              />
-              <div className="mt-3 flex items-center gap-2 lg:hidden">
-                <button
-                  onClick={goPrev}
-                  className="focusable flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary/50"
-                >
-                  ‹ Anterior
-                </button>
-                <button
-                  onClick={goNext}
-                  className="focusable flex flex-1 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary/50"
-                >
-                  Próximo ›
-                </button>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <h1 className="font-display text-xl font-bold">{selected.name}</h1>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => playerRef.current?.requestFullscreen()}
-                    className="focusable flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary/50"
-                  >
-                    <Maximize className="h-4 w-4" />
-                    Tela cheia
-                  </button>
-                  <button
-                    onClick={onFav}
-                    className="focusable flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-primary/50"
-                  >
-                    <Heart className={`h-4 w-4 ${fav ? "fill-primary text-primary" : ""}`} />
-                    {fav ? "Favorito" : "Favoritar"}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="grid aspect-video place-items-center rounded-xl bg-card">
-              <Tv className="h-10 w-10 text-muted-foreground" />
-            </div>
           )}
         </div>
       </div>
