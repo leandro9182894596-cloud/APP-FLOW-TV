@@ -14,8 +14,10 @@ import {
   Lock,
   Loader2,
   KeyRound,
+  CreditCard,
 } from "lucide-react";
 import { getConfig, verifyAdmin, saveConfig } from "../lib/config.functions";
+import type { PaymentInfo } from "../types/payment";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -34,6 +36,8 @@ interface FormState {
   bannerLink: string; // compatibilidade retroativa
   banners: Array<{ image: string; link?: string }>;
   dns: string[]; // always length 5
+  paymentInfo?: PaymentInfo | null;
+  paymentStatus?: string | null;
 }
 
 function AdminPage() {
@@ -57,6 +61,8 @@ function AdminPage() {
       bannerLink: cfg.bannerLink ?? "",
       banners: cfg.banners ?? [],
       dns: dns.slice(0, 5),
+      paymentInfo: cfg.paymentInfo,
+      paymentStatus: cfg.paymentStatus,
     });
   };
 
@@ -97,6 +103,8 @@ function AdminPage() {
           bannerLink: form.bannerLink,
           banners: form.banners.length > 0 ? form.banners : null,
           dnsList: form.dns,
+          paymentInfo: form.paymentInfo,
+          paymentStatus: form.paymentStatus,
           newPassword: newPassword.trim() || undefined,
         },
       });
@@ -106,7 +114,7 @@ function AdminPage() {
       }
       await qc.invalidateQueries({ queryKey: ["app-config"] });
       toast.success("Configurações salvas", {
-        description: "Logo, fundo, banner e DNS atualizados para todos os usuários.",
+        description: "Configurações atualizadas para todos os usuários.",
       });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao salvar.");
@@ -289,6 +297,128 @@ function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Payment Info */}
+        <div className="space-y-4 rounded-2xl border border-border bg-card/80 p-6 shadow-card backdrop-blur">
+          <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+            <CreditCard className="h-5 w-5 text-primary" /> Dados de Pagamento
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Configure os dados de pagamento para renovação automática.
+          </p>
+          
+          {form.paymentInfo ? (
+            <div className="space-y-3 rounded-xl border border-border bg-secondary/30 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Dados cadastrados</span>
+                <button
+                  type="button"
+                  onClick={() => update({ paymentInfo: null, paymentStatus: null })}
+                  className="focusable flex items-center gap-1.5 text-xs text-destructive hover:underline"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Limpar
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <span className="text-xs text-muted-foreground">Nome do cliente</span>
+                  <input
+                    type="text"
+                    value={form.paymentInfo.clienteNome}
+                    onChange={(e) => update({ 
+                      paymentInfo: { ...form.paymentInfo!, clienteNome: e.target.value } 
+                    })}
+                    className="w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <span className="text-xs text-muted-foreground">Data de vencimento</span>
+                  <input
+                    type="date"
+                    value={form.paymentInfo.dataVencimento}
+                    onChange={(e) => update({ 
+                      paymentInfo: { ...form.paymentInfo!, dataVencimento: e.target.value } 
+                    })}
+                    className="w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <span className="text-xs text-muted-foreground">Valor do plano (R$)</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.paymentInfo.valorPlano}
+                    onChange={(e) => update({ 
+                      paymentInfo: { ...form.paymentInfo!, valorPlano: parseFloat(e.target.value) || 0 } 
+                    })}
+                    className="w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <span className="text-xs text-muted-foreground">Usuário</span>
+                  <input
+                    type="text"
+                    value={form.paymentInfo.usuario}
+                    onChange={(e) => update({ 
+                      paymentInfo: { ...form.paymentInfo!, usuario: e.target.value } 
+                    })}
+                    className="w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <span className="text-xs text-muted-foreground">Link de pagamento</span>
+                  <input
+                    type="text"
+                    value={form.paymentInfo.linkPagamento}
+                    onChange={(e) => update({ 
+                      paymentInfo: { ...form.paymentInfo!, linkPagamento: e.target.value } 
+                    })}
+                    className="w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <span className="text-xs text-muted-foreground">Status do pagamento</span>
+                  <select
+                    value={form.paymentStatus || ""}
+                    onChange={(e) => update({ 
+                      paymentStatus: e.target.value || null 
+                    })}
+                    className="w-full rounded-lg border border-input bg-secondary/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="aprovado">Aprovado</option>
+                    <option value="rejeitado">Rejeitado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => update({
+                paymentInfo: {
+                  clienteNome: "",
+                  dataVencimento: new Date().toISOString().split('T')[0],
+                  valorPlano: 29.90,
+                  usuario: "",
+                  linkPagamento: "",
+                  status: "pendente"
+                },
+                paymentStatus: "pendente"
+              })}
+              className="focusable flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/50"
+            >
+              <Upload className="h-3.5 w-3.5" /> Adicionar dados de pagamento
+            </button>
+          )}
         </div>
 
         {/* Change password */}

@@ -24,6 +24,8 @@ export type Database = {
           dns_list: Json
           id: number
           logo: string | null
+          payment_info: Json | null
+          payment_status: string | null
           updated_at: string
         }
         Insert: {
@@ -35,6 +37,8 @@ export type Database = {
           dns_list?: Json
           id?: number
           logo?: string | null
+          payment_info?: Json | null
+          payment_status?: string | null
           updated_at?: string
         }
         Update: {
@@ -46,6 +50,8 @@ export type Database = {
           dns_list?: Json
           id?: number
           logo?: string | null
+          payment_info?: Json | null
+          payment_status?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -25,6 +25,8 @@ export function useSettings(): AppSettings {
         bannerLink: cfg.bannerLink ?? undefined,
         banners: Array.isArray(cfg.banners) ? cfg.banners : undefined,
         dnsList: cfg.dnsList,
+        paymentInfo: cfg.paymentInfo,
+        paymentStatus: cfg.paymentStatus,
       };
       saveSettings(next);
       return next;

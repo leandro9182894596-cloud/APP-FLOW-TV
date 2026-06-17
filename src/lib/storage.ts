@@ -1,6 +1,7 @@
 // FLOW TV — local persistence: account, cache, continue-watching, favorites.
 
 import type { Account, UserInfo } from "./xtream";
+import type { PaymentInfo } from "@/types/payment";
 
 const ACCOUNT_KEY = "flowtv.account";
 const DNS_KEY = "flowtv.dns";
@@ -73,6 +74,8 @@ export interface AppSettings {
   bannerLink?: string; // optional click-through URL (compatibilidade retroativa)
   banners?: Array<{ image: string; link?: string }>; // multiple banners
   dnsList?: string[]; // up to 5 server DNS endpoints
+  paymentInfo?: PaymentInfo | null;
+  paymentStatus?: string | null;
 }
 
 export const SETTINGS_EVENT = "flowtv:settings";

@@ -5,12 +5,14 @@ import { motion } from "framer-motion";
 import { AppShell } from "../components/AppShell";
 import { ContentCard } from "../components/ContentCard";
 import { SeriesCard } from "../components/SeriesCard";
+import { TelaRenovacao } from "../components/TelaRenovacao";
 import { useRequireAccount } from "../hooks/use-require-account";
 import { useSettings } from "../hooks/use-settings";
 import { useCachedQuery, accountKey } from "../lib/queries";
 import { getVodStreams, getSeries, getLiveStreams, proxiedImage, type Account, type SeriesItem } from "../lib/xtream";
 import { loadProgress, removeProgress, type ProgressEntry } from "../lib/storage";
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +28,7 @@ function HomePage() {
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
   const settings = useSettings();
+  const queryClient = useQueryClient();
 
   const movies = useCachedQuery(`${key}:vod:all`, () => getVodStreams(account!), { enabled: !!account });
   const series = useCachedQuery(`${key}:series:all`, () => getSeries(account!), { enabled: !!account });
@@ -35,6 +38,32 @@ function HomePage() {
   useEffect(() => {
     setProgress(loadProgress());
   }, []);
+
+  // Verifica se precisa mostrar tela de renovação
+  const [mostrarRenovacao, setMostrarRenovacao] = useState(false);
+  
+  useEffect(() => {
+    if (settings.paymentInfo) {
+      try {
+        const dataVencimento = new Date(settings.paymentInfo.dataVencimento);
+        const hoje = new Date();
+        const diasAteVencimento = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Mostra tela se venceu ou está prestes a vencer (menos de 3 dias)
+        if (diasAteVencimento <= 3) {
+          setMostrarRenovacao(true);
+        }
+      } catch (e) {
+        console.error("Erro ao verificar data de vencimento:", e);
+      }
+    }
+  }, [settings.paymentInfo]);
+
+  const handlePaymentApproved = () => {
+    setMostrarRenovacao(false);
+    // Recarrega as configurações para atualizar o status
+    queryClient.invalidateQueries({ queryKey: ["app-config"] });
+  };
 
   const featured = useMemo(() => {
     const list = movies.data ?? [];
@@ -71,68 +100,78 @@ function HomePage() {
   };
 
   return (
-    <AppShell>
-      {/* Hero */}
-      {featured && (
-        <section className="relative h-[56vh] min-h-[380px] w-full overflow-hidden">
-          {featured.stream_icon && (
-            <img
-              src={proxiedImage(featured.stream_icon)}
-              alt={featured.name}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-          <div className="relative z-10 flex h-full flex-col justify-end p-6 lg:p-12">
-            <div className="w-fit rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-glow">
-              Em destaque
-            </div>
-            <h1 className="mt-3 max-w-2xl font-display text-3xl font-extrabold leading-tight text-white drop-shadow-lg lg:text-5xl">
-              {featured.name}
-            </h1>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                to="/movie/$id"
-                params={{ id: String(featured.stream_id) }}
-                className="focusable inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-105"
-              >
-                <Play className="h-5 w-5" fill="currentColor" /> Assistir
-              </Link>
-              <Link
-                to="/movie/$id"
-                params={{ id: String(featured.stream_id) }}
-                className="focusable inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
-              >
-                <Info className="h-5 w-5" /> Detalhes
-              </Link>
-            </div>
-          </div>
-        </section>
+    <>
+      {/* Tela de Renovação */}
+      {settings.paymentInfo && (
+        <TelaRenovacao
+          paymentInfo={settings.paymentInfo}
+          onPaymentApproved={handlePaymentApproved}
+          isOpen={mostrarRenovacao}
+        />
       )}
-
-      {/* Ad banner — below the featured hero */}
-      {(() => {
-        // Tenta banners múltiplos primeiro, senão usa o banner único
-        let bannersList: Array<{ image: string; link?: string }> = [];
-        
-        if (settings.banners && Array.isArray(settings.banners) && settings.banners.length > 0) {
-          bannersList = settings.banners.filter((b: any) => b && b.image);
-        } else if (settings.banner) {
-          bannersList = [{ image: settings.banner, link: settings.bannerLink }];
-        }
-        
-        if (bannersList.length > 0) {
-          return (
-            <div className="px-4 pt-6 lg:px-12">
-              <AdBanner banners={bannersList} />
+      
+      <AppShell>
+        {/* Hero */}
+        {featured && (
+          <section className="relative h-[56vh] min-h-[380px] w-full overflow-hidden">
+            {featured.stream_icon && (
+              <img
+                src={proxiedImage(featured.stream_icon)}
+                alt={featured.name}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
+            <div className="relative z-10 flex h-full flex-col justify-end p-6 lg:p-12">
+              <div className="w-fit rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-glow">
+                Em destaque
+              </div>
+              <h1 className="mt-3 max-w-2xl font-display text-3xl font-extrabold leading-tight text-white drop-shadow-lg lg:text-5xl">
+                {featured.name}
+              </h1>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  to="/movie/$id"
+                  params={{ id: String(featured.stream_id) }}
+                  className="focusable inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-105"
+                >
+                  <Play className="h-5 w-5" fill="currentColor" /> Assistir
+                </Link>
+                <Link
+                  to="/movie/$id"
+                  params={{ id: String(featured.stream_id) }}
+                  className="focusable inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
+                >
+                  <Info className="h-5 w-5" /> Detalhes
+                </Link>
+              </div>
             </div>
-          );
-        }
-        return null;
-      })()}
+          </section>
+        )}
 
-      <div className="space-y-10 px-4 py-8 lg:px-12">
+        {/* Ad banner — below the featured hero */}
+        {(() => {
+          // Tenta banners múltiplos primeiro, senão usa o banner único
+          let bannersList: Array<{ image: string; link?: string }> = [];
+          
+          if (settings.banners && Array.isArray(settings.banners) && settings.banners.length > 0) {
+            bannersList = settings.banners.filter((b: any) => b && b.image);
+          } else if (settings.banner) {
+            bannersList = [{ image: settings.banner, link: settings.bannerLink }];
+          }
+          
+          if (bannersList.length > 0) {
+            return (
+              <div className="px-4 pt-6 lg:px-12">
+                <AdBanner banners={bannersList} />
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        <div className="space-y-10 px-4 py-8 lg:px-12">
 
 
 
@@ -192,6 +231,7 @@ function HomePage() {
         />
       </div>
     </AppShell>
+    </>
   );
 }
 

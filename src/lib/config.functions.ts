@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { PaymentInfo } from '@/types/payment';
 
 export interface PublicConfig {
   logo: string | null;
@@ -7,6 +8,8 @@ export interface PublicConfig {
   bannerLink: string | null;
   banners: Array<{ image: string; link?: string }> | null;
   dnsList: string[];
+  paymentInfo: PaymentInfo | null;
+  paymentStatus: string | null;
 }
 
 function normalizeDns(input: string): string {
@@ -22,7 +25,7 @@ export const getConfig = createServerFn({ method: "GET" }).handler(
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("app_config")
-      .select("logo, background, banner, banner_link, banners, dns_list")
+      .select("logo, background, banner, banner_link, banners, dns_list, payment_info, payment_status")
       .eq("id", 1)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -33,6 +36,8 @@ export const getConfig = createServerFn({ method: "GET" }).handler(
       bannerLink: data?.banner_link ?? null,
       banners: Array.isArray(data?.banners) ? (data!.banners as Array<{ image: string; link?: string }>) : null,
       dnsList: Array.isArray(data?.dns_list) ? (data!.dns_list as string[]) : [],
+      paymentInfo: (data?.payment_info as PaymentInfo) || null,
+      paymentStatus: data?.payment_status ?? null,
     };
   },
 );
@@ -67,6 +72,8 @@ interface SavePayload {
   bannerLink?: string | null;
   banners?: Array<{ image: string; link?: string }> | null;
   dnsList?: string[];
+  paymentInfo?: PaymentInfo | null;
+  paymentStatus?: string | null;
   newPassword?: string;
 }
 
@@ -87,26 +94,30 @@ export const saveConfig = createServerFn({ method: "POST" })
     }
 
     const update: {
-      updated_at: string;
-      logo?: string | null;
-      background?: string | null;
-      banner?: string | null;
-      banner_link?: string | null;
-      banners?: Array<{ image: string; link?: string }> | null;
-      dns_list?: string[];
-      admin_password?: string;
-    } = { updated_at: new Date().toISOString() };
-    if (data.logo !== undefined) update.logo = data.logo;
-    if (data.background !== undefined) update.background = data.background;
-    if (data.banner !== undefined) update.banner = data.banner;
-    if (data.bannerLink !== undefined) update.banner_link = data.bannerLink || null;
-    if (data.banners !== undefined) update.banners = data.banners;
-    if (data.dnsList !== undefined) {
-      update.dns_list = data.dnsList.map(normalizeDns).filter(Boolean).slice(0, 5);
-    }
-    if (data.newPassword && data.newPassword.trim()) {
-      update.admin_password = data.newPassword.trim();
-    }
+    updated_at: string;
+    logo?: string | null;
+    background?: string | null;
+    banner?: string | null;
+    banner_link?: string | null;
+    banners?: Array<{ image: string; link?: string }> | null;
+    dns_list?: string[];
+    payment_info?: PaymentInfo | null;
+    payment_status?: string | null;
+    admin_password?: string;
+  } = { updated_at: new Date().toISOString() };
+  if (data.logo !== undefined) update.logo = data.logo;
+  if (data.background !== undefined) update.background = data.background;
+  if (data.banner !== undefined) update.banner = data.banner;
+  if (data.bannerLink !== undefined) update.banner_link = data.bannerLink || null;
+  if (data.banners !== undefined) update.banners = data.banners;
+  if (data.dnsList !== undefined) {
+    update.dns_list = data.dnsList.map(normalizeDns).filter(Boolean).slice(0, 5);
+  }
+  if (data.paymentInfo !== undefined) update.payment_info = data.paymentInfo;
+  if (data.paymentStatus !== undefined) update.payment_status = data.paymentStatus;
+  if (data.newPassword && data.newPassword.trim()) {
+    update.admin_password = data.newPassword.trim();
+  }
 
     const { data: updated, error } = await supabaseAdmin
       .from("app_config")
