@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { loadSettings, saveSettings, type AppSettings } from "../lib/storage";
 import { getConfig } from "../lib/config.functions";
 
