@@ -19,7 +19,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { login, account, ready } = useAccount();
-  const settings = useSettings();
+  const { settings, isLoading } = useSettings();
   const [mounted, setMounted] = useState(false);
   const dnsList = useMemo(
     () => (settings.dnsList ?? []).map((dns) => dns.trim()).filter(Boolean),
@@ -66,6 +66,20 @@ function LoginPage() {
     }
   };
 
+  // Show loading screen while fetching settings
+  if (isLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+            <MonitorPlay className="h-8 w-8" />
+          </div>
+          <p className="font-display text-xl font-extrabold">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       <div className="pointer-events-none absolute -left-40 top-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
@@ -73,7 +87,7 @@ function LoginPage() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          {mounted && settings.logo ? (
+          {settings.logo ? (
             <img src={settings.logo} alt="Logo" className="mb-4 h-20 w-auto max-w-[220px] object-contain" />
           ) : (
             <>
@@ -92,13 +106,13 @@ function LoginPage() {
           onSubmit={onSubmit}
           className="space-y-4 rounded-2xl border border-border bg-card/80 p-6 shadow-card backdrop-blur"
         >
-          {mounted && dnsList.length === 0 && (
+          {dnsList.length === 0 && (
             <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-xs text-destructive">
               Nenhuma DNS configurada. Acesse a página de Admin para cadastrar o servidor.
             </p>
           )}
 
-          {mounted && dnsList.length > 1 && (
+          {dnsList.length > 1 && (
             <div className="rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-3 text-xs text-foreground">
               <div className="flex items-start gap-2">
                 <Server className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
