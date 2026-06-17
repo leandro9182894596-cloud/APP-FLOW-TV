@@ -22,10 +22,10 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-function HomePage() {
+function Home() {
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
-  const settings = useSettings();
+  const { settings } = useSettings();
 
   const movies = useCachedQuery(`${key}:vod:all`, () => getVodStreams(account!), { enabled: !!account });
   const series = useCachedQuery(`${key}:series:all`, () => getSeries(account!), { enabled: !!account });

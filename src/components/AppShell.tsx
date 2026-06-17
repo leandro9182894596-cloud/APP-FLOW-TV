@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { userInfo, logout } = useAccount();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const settings = useSettings();
+  const { settings, isLoading } = useSettings();
   // Avoid SSR/client hydration mismatch (React #418 → white screen on TV):
   // settings come from localStorage which the server can't see, so only apply
   // appearance after the component has mounted on the client.
@@ -30,6 +30,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     logout();
     navigate({ to: "/login" });
   };
+
+  // Show loading screen while fetching settings from server
+  if (isLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+            <MonitorPlay className="h-8 w-8" />
+          </div>
+          <p className="font-display text-xl font-extrabold">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative flex min-h-screen ${hasBg ? "bg-black" : "bg-background"}`}>
@@ -147,37 +161,33 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
-  const settings = useSettings();
-  const [mounted, setMounted] = useState(false);
-  const [logoError, setLogoError] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const { settings } = useSettings();
   
-  // Fallback to default logo if custom logo fails to load
-  const hasCustomLogo = mounted && settings.logo && !logoError;
-  
-  return (
-    <Link to="/" className="focusable flex items-center gap-2.5">
-      {hasCustomLogo ? (
+  // Always render custom logo if it exists, no extra state
+  if (settings.logo) {
+    return (
+      <Link to="/" className="focusable flex items-center gap-2.5">
         <img
           src={settings.logo}
           alt="Logo"
           loading="eager"
           fetchPriority="high"
           className={`${compact ? "h-8" : "h-9"} w-auto max-w-[160px] object-contain`}
-          onError={() => setLogoError(true)}
         />
-      ) : (
-        <>
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-            <MonitorPlay className="h-5 w-5" />
-          </span>
-          <span
-            className={`font-display ${compact ? "text-lg" : "text-xl"} font-extrabold tracking-tight`}
-          >
-            FLOW<span className="text-gradient">TV</span>
-          </span>
-        </>
-      )}
+      </Link>
+    );
+  }
+  
+  return (
+    <Link to="/" className="focusable flex items-center gap-2.5">
+      <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
+        <MonitorPlay className="h-5 w-5" />
+      </span>
+      <span
+        className={`font-display ${compact ? "text-lg" : "text-xl"} font-extrabold tracking-tight`}
+      >
+        FLOW<span className="text-gradient">TV</span>
+      </span>
     </Link>
   );
 }
