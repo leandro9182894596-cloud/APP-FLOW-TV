@@ -149,14 +149,22 @@ export function AppShell({ children }: { children: ReactNode }) {
 function Brand({ compact = false }: { compact?: boolean }) {
   const settings = useSettings();
   const [mounted, setMounted] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   useEffect(() => setMounted(true), []);
+  
+  // Fallback to default logo if custom logo fails to load
+  const hasCustomLogo = mounted && settings.logo && !logoError;
+  
   return (
     <Link to="/" className="focusable flex items-center gap-2.5">
-      {mounted && settings.logo ? (
+      {hasCustomLogo ? (
         <img
           src={settings.logo}
           alt="Logo"
+          loading="eager"
+          fetchPriority="high"
           className={`${compact ? "h-8" : "h-9"} w-auto max-w-[160px] object-contain`}
+          onError={() => setLogoError(true)}
         />
       ) : (
         <>
