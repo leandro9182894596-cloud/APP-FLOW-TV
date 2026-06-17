@@ -382,30 +382,60 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
     };
   }, [onProgress, onEnded]);
 
-  // ---- fullscreen ----
+  // ---- fullscreen and rotation ----
+  const forceLandscape = useCallback(async () => {
+    try {
+      // Try multiple orientation lock APIs
+      const screenAny = screen as any;
+      
+      // Method 1: screen.orientation.lock
+      if (screenAny.orientation?.lock) {
+        await screenAny.orientation.lock('landscape');
+      }
+      
+      // Method 2: screen.lockOrientation (older API)
+      else if (screenAny.lockOrientation) {
+        screenAny.lockOrientation('landscape');
+      }
+      else if (screenAny.mozLockOrientation) {
+        screenAny.mozLockOrientation('landscape');
+      }
+      else if (screenAny.msLockOrientation) {
+        screenAny.msLockOrientation('landscape');
+      }
+    } catch {
+      // Ignore errors - some browsers/devices don't support this
+    }
+  }, []);
+
   useEffect(() => {
     const onFs = () => {
       const isFs = !!document.fullscreenElement;
       setFullscreen(isFs);
-      // Lock to landscape while fullscreen (mobile), release when leaving.
-      const orientation = (screen as unknown as { orientation?: { lock?: (o: string) => Promise<void>; unlock?: () => void } }).orientation;
-      try {
-        if (isFs) orientation?.lock?.("landscape").catch(() => {});
-        else orientation?.unlock?.();
-      } catch {
-        /* ignore — not supported on this device */
+      if (isFs && (effectiveLockLandscape || isMobile)) {
+        forceLandscape();
       }
     };
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
+  }, [forceLandscape, effectiveLockLandscape, isMobile]);
 
   // Auto-fullscreen on mobile when playing starts
   useEffect(() => {
     if (isMobile && playing && containerRef.current && !document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
+      const enterFullscreen = async () => {
+        try {
+          await containerRef.current!.requestFullscreen();
+          // Try to force landscape after entering fullscreen
+          setTimeout(forceLandscape, 100);
+          setTimeout(forceLandscape, 500);
+        } catch {
+          // Ignore
+        }
+      };
+      enterFullscreen();
     }
-  }, [isMobile, playing]);
+  }, [isMobile, playing, forceLandscape]);
 
   // Effective lockLandscape: true on mobile by default
   const effectiveLockLandscape = lockLandscape ?? isMobile;
