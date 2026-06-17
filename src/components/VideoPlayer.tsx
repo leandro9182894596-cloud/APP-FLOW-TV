@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef, type ReactNode } from "react";
+import { useIsMobile } from "../hooks/use-mobile";
 import type Hls from "hls.js";
 import {
   Play,
@@ -98,8 +99,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
   nextLabel,
   onPrev,
   prevLabel,
-  lockLandscape = false,
+  lockLandscape,
 }, ref) {
+  const isMobile = useIsMobile();
   useImperativeHandle(ref, () => ({
     requestFullscreen: () => {
       const el = containerRef.current;
@@ -397,6 +399,16 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
+
+  // Auto-fullscreen on mobile when playing starts
+  useEffect(() => {
+    if (isMobile && playing && containerRef.current && !document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+    }
+  }, [isMobile, playing]);
+
+  // Effective lockLandscape: true on mobile by default
+  const effectiveLockLandscape = lockLandscape ?? isMobile;
 
   // ---- auto fullscreen + landscape removed due to user gesture requirements ----
 

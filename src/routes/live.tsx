@@ -111,16 +111,17 @@ function LivePage() {
           {selected ? (
             <>
               <VideoPlayer
-                ref={playerRef}
-                key={selected.stream_id}
-                source={{ url: liveStreamUrl(account, selected.stream_id), isLive: true }}
-                title={selected.name}
-                poster={proxiedImage(selected.stream_icon)}
-                onNext={filtered.length > 1 ? goNext : undefined}
-                nextLabel="Próximo canal"
-                onPrev={filtered.length > 1 ? goPrev : undefined}
-                prevLabel="Canal anterior"
-              />
+            ref={playerRef}
+            key={selected.stream_id}
+            source={{ url: liveStreamUrl(account, selected.stream_id), isLive: true }}
+            title={selected.name}
+            poster={proxiedImage(selected.stream_icon)}
+            onNext={filtered.length > 1 ? goNext : undefined}
+            nextLabel="Próximo canal"
+            onPrev={filtered.length > 1 ? goPrev : undefined}
+            prevLabel="Canal anterior"
+            lockLandscape
+          />
               <div className="mt-3 flex items-center gap-2 lg:hidden">
                 <button
                   onClick={goPrev}
