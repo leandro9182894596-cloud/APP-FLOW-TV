@@ -116,18 +116,12 @@ function HomePage() {
 
         {/* Ad banner — below the featured hero */}
         {(() => {
-          console.log("DEBUG Settings:", settings);
-          console.log("DEBUG settings.banners:", settings.banners);
-          console.log("DEBUG settings.banner:", settings.banner);
-          
           // Tenta banners múltiplos primeiro, senão usa o banner único
           let bannersList: Array<{ image: string; link?: string }> = [];
           
           if (settings.banners && Array.isArray(settings.banners) && settings.banners.length > 0) {
             bannersList = settings.banners.filter((b: any) => {
               // More flexible check for banner image
-              if (!b) return false;
-              console.log("DEBUG checking banner:", b);
               return b.image || b.banner || b.src || b.url;
             }).map((b: any) => ({
               image: b.image || b.banner || b.src || b.url,
@@ -136,8 +130,6 @@ function HomePage() {
           } else if (settings.banner) {
             bannersList = [{ image: settings.banner, link: settings.bannerLink }];
           }
-          
-          console.log("DEBUG bannersList:", bannersList);
           
           if (bannersList.length > 0) {
             return (

@@ -25,8 +25,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => setMounted(true), []);
 
   const hasBg = mounted && !!settings.background;
-  
-  console.log("AppShell Settings:", { settings, hasBg, mounted });
 
   const handleLogout = () => {
     logout();
