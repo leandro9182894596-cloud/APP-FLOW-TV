@@ -118,9 +118,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Save original orientation and force landscape
-        originalOrientation = requestedOrientation
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        // Save original orientation and force landscape (apenas se não for TV)
+        if (!isTvDevice()) {
+            originalOrientation = requestedOrientation
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
 
         customView = view
         customViewCallback = callback
@@ -144,10 +146,18 @@ class MainActivity : AppCompatActivity() {
         customViewCallback?.onCustomViewHidden()
         customViewCallback = null
         
-        // Restore original orientation
-        requestedOrientation = originalOrientation
+        // Restore original orientation (apenas se não for TV)
+        if (!isTvDevice()) {
+            requestedOrientation = originalOrientation
+        }
         
         enableFullscreen()
+    }
+    
+    // Verifica se é uma Android TV
+    private fun isTvDevice(): Boolean {
+        val uiModeManager = getSystemService(android.content.Context.UI_MODE_SERVICE) as android.app.UiModeManager
+        return uiModeManager.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
 
     private inner class FlowWebViewClient : WebViewClient() {
