@@ -13,13 +13,12 @@ const CLEANUP_DONE_KEY = "flowtv.cleanup.v1";
 
 const isBrowser = typeof window !== "undefined";
 
-// Clean up old cache on first load to prevent quota errors
-if (isBrowser && !localStorage.getItem(CLEANUP_DONE_KEY)) {
+// Clean up old cache on EVERY load to prevent quota errors
+if (isBrowser) {
   try {
     Object.keys(localStorage)
       .filter(k => k.startsWith(CACHE_PREFIX))
       .forEach(k => localStorage.removeItem(k));
-    localStorage.setItem(CLEANUP_DONE_KEY, "done");
   } catch {}
 }
 
@@ -148,21 +147,9 @@ export function getCache<T>(key: string, maxAgeMs: number): T | null {
     return null;
   }
 }
-export function setCache<T>(key: string, value: T) {
-  if (!isBrowser) return;
-  try {
-    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ t: Date.now(), v: value }));
-  } catch {
-    // storage full — drop oldest cache entries
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith(CACHE_PREFIX))
-        .slice(0, 10)
-        .forEach((k) => localStorage.removeItem(k));
-    } catch {
-      /* ignore */
-    }
-  }
+export function setCache<T>(_key: string, _value: T) {
+  // Cache disabled to prevent storage quota errors
+  return;
 }
 
 // ---------- Continue watching ----------
