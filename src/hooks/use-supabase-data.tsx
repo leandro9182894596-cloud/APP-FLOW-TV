@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSupabaseAuth } from "./use-supabase-auth";
+import { useSupabase } from "../lib/supabase";
 import {
   getFavorites,
   addFavorite,
@@ -27,7 +28,7 @@ export function useFavorites() {
   const { data: favorites = [], isLoading } = useQuery({
     queryKey: ["favorites", user?.id],
     queryFn: () => (user ? getFavorites(user.id) : []),
-    enabled: !!user,
+    enabled: !!user && useSupabase,
   });
 
   const addFavoriteMutation = useMutation({
@@ -42,7 +43,7 @@ export function useFavorites() {
       title: string;
       poster: string;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return null;
       return addFavorite(user.id, contentType, contentId, title, poster);
     },
     onSuccess: () => {
@@ -58,7 +59,7 @@ export function useFavorites() {
       contentType: "live" | "movie" | "series";
       contentId: number;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return false;
       return removeFavorite(user.id, contentType, contentId);
     },
     onSuccess: () => {
@@ -81,7 +82,7 @@ export function useWatchHistory() {
   const { data: history = [], isLoading } = useQuery({
     queryKey: ["watchHistory", user?.id],
     queryFn: () => (user ? getWatchHistory(user.id) : []),
-    enabled: !!user,
+    enabled: !!user && useSupabase,
   });
 
   const saveProgressMutation = useMutation({
@@ -94,7 +95,7 @@ export function useWatchHistory() {
       duration: number;
       episodeId?: string;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return null;
       return saveWatchProgress(
         user.id,
         data.contentType,
@@ -119,7 +120,7 @@ export function useWatchHistory() {
       contentType: "movie" | "series";
       contentId: number;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return false;
       return removeWatchProgress(user.id, contentType, contentId);
     },
     onSuccess: () => {
@@ -142,7 +143,7 @@ export function useDnsConnections() {
   const { data: dnsConnections = [], isLoading } = useQuery({
     queryKey: ["dnsConnections", user?.id],
     queryFn: () => (user ? getDnsConnections(user.id) : []),
-    enabled: !!user,
+    enabled: !!user && useSupabase,
   });
 
   const addDnsMutation = useMutation({
@@ -155,7 +156,7 @@ export function useDnsConnections() {
       username: string;
       password: string;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return null;
       return addDnsConnection(user.id, dnsUrl, username, password);
     },
     onSuccess: () => {
@@ -173,7 +174,7 @@ export function useDnsConnections() {
       username: string;
       password: string;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return null;
       return updateDnsConnection(id, dnsUrl, username, password);
     },
     onSuccess: () => {
@@ -183,7 +184,7 @@ export function useDnsConnections() {
 
   const deleteDnsMutation = useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return false;
       return deleteDnsConnection(id);
     },
     onSuccess: () => {
@@ -206,12 +207,12 @@ export function useAppSettings() {
   const { data: settings = null, isLoading } = useQuery({
     queryKey: ["appSettings", user?.id],
     queryFn: () => (user ? getAppSettings(user.id) : null),
-    enabled: !!user,
+    enabled: !!user && useSupabase,
   });
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: any) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return null;
       return saveAppSettings(user.id, newSettings);
     },
     onSuccess: () => {
@@ -232,12 +233,12 @@ export function useProfile() {
   const { data: profile = null, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: () => (user ? getProfile(user.id) : null),
-    enabled: !!user,
+    enabled: !!user && useSupabase,
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !useSupabase) return null;
       return updateProfile(user.id, profileData);
     },
     onSuccess: () => {

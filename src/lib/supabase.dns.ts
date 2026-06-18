@@ -1,7 +1,8 @@
-import { supabase } from "./supabase";
+import { supabase, useSupabase } from "./supabase";
 import type { DnsConnection } from "./supabase.types";
 
 export async function getDnsConnections(userId: string) {
+  if (!useSupabase) return [];
   const { data, error } = await supabase
     .from("dns_connections")
     .select("*")
@@ -20,6 +21,7 @@ export async function addDnsConnection(
   username: string,
   password: string
 ) {
+  if (!useSupabase) return null;
   const { data, error } = await supabase
     .from("dns_connections")
     .insert([{ user_id: userId, dns_url: dnsUrl, username, password }])
@@ -38,6 +40,7 @@ export async function updateDnsConnection(
   username: string,
   password: string
 ) {
+  if (!useSupabase) return null;
   const { data, error } = await supabase
     .from("dns_connections")
     .update({ dns_url: dnsUrl, username, password })
@@ -52,6 +55,7 @@ export async function updateDnsConnection(
 }
 
 export async function deleteDnsConnection(id: string) {
+  if (!useSupabase) return false;
   const { error } = await supabase.from("dns_connections").delete().eq("id", id);
   if (error) {
     console.error("Error deleting DNS connection:", error);

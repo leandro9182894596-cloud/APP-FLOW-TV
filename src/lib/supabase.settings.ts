@@ -1,7 +1,8 @@
-import { supabase } from "./supabase";
+import { supabase, useSupabase } from "./supabase";
 import type { AppSetting } from "./supabase.types";
 
 export async function getAppSettings(userId: string) {
+  if (!useSupabase) return null;
   const { data, error } = await supabase
     .from("settings")
     .select("*")
@@ -22,8 +23,7 @@ export async function saveAppSettings(
   userId: string,
   settings: Partial<AppSetting>
 ) {
-  const existing = await getAppSettings(userId);
-
+  if (!useSupabase) return null;
   const { data, error } = await supabase
     .from("settings")
     .upsert({ user_id: userId, ...settings })

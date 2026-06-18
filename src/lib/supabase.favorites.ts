@@ -1,7 +1,8 @@
-import { supabase } from "./supabase";
+import { supabase, useSupabase } from "./supabase";
 import type { Favorite } from "./supabase.types";
 
 export async function getFavorites(userId: string) {
+  if (!useSupabase) return [];
   const { data, error } = await supabase
     .from("favorites")
     .select("*")
@@ -22,6 +23,8 @@ export async function addFavorite(
   title: string,
   poster: string
 ) {
+  if (!useSupabase) return null;
+  
   const existing = await supabase
     .from("favorites")
     .select("id")
@@ -51,6 +54,8 @@ export async function removeFavorite(
   contentType: "live" | "movie" | "series",
   contentId: number
 ) {
+  if (!useSupabase) return false;
+  
   const { error } = await supabase
     .from("favorites")
     .delete()
@@ -70,6 +75,8 @@ export async function isFavorite(
   contentType: "live" | "movie" | "series",
   contentId: number
 ) {
+  if (!useSupabase) return false;
+  
   const { data, error } = await supabase
     .from("favorites")
     .select("id")

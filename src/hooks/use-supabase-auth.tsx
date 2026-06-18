@@ -5,7 +5,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, useSupabase } from "../lib/supabase";
 import {
   signIn,
   signUp,
@@ -30,6 +30,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!useSupabase) {
+      setLoading(false);
+      return;
+    }
+
     const initialize = async () => {
       setLoading(true);
       const currentUser = await getCurrentUser();
@@ -50,7 +55,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 

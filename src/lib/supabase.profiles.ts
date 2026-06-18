@@ -1,7 +1,8 @@
-import { supabase } from "./supabase";
+import { supabase, useSupabase } from "./supabase";
 import type { Profile } from "./supabase.types";
 
 export async function getProfile(userId: string) {
+  if (!useSupabase) return null;
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -19,6 +20,7 @@ export async function updateProfile(
   userId: string,
   profile: Partial<Profile>
 ) {
+  if (!useSupabase) return null;
   const { data, error } = await supabase
     .from("profiles")
     .upsert({ id: userId, ...profile })

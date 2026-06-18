@@ -1,7 +1,8 @@
-import { supabase } from "./supabase";
+import { supabase, useSupabase } from "./supabase";
 import type { WatchHistory } from "./supabase.types";
 
 export async function getWatchHistory(userId: string, limit = 40) {
+  if (!useSupabase) return [];
   const { data, error } = await supabase
     .from("watch_history")
     .select("*")
@@ -26,6 +27,8 @@ export async function saveWatchProgress(
   duration: number,
   episode_id?: string
 ) {
+  if (!useSupabase) return null;
+  
   const existing = await supabase
     .from("watch_history")
     .select("id")
@@ -67,6 +70,8 @@ export async function removeWatchProgress(
   content_type: "movie" | "series",
   content_id: number
 ) {
+  if (!useSupabase) return false;
+  
   const { error } = await supabase
     .from("watch_history")
     .delete()
