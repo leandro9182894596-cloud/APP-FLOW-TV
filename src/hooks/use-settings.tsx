@@ -14,9 +14,15 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
   // Always use localStorage first for instant load
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => {
     try {
-      return loadSettings();
+      const settings = loadSettings();
+      return {
+        ...settings,
+        dnsList: settings.dnsList || [],
+      };
     } catch {
-      return {};
+      return {
+        dnsList: [],
+      };
     }
   });
 
@@ -37,7 +43,7 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
           banner: cfg.banner ?? undefined,
           bannerLink: cfg.bannerLink ?? undefined,
           banners: Array.isArray(cfg.banners) ? cfg.banners : undefined,
-          dnsList: cfg.dnsList,
+          dnsList: cfg.dnsList || [],
           paymentInfo: cfg.paymentInfo,
           paymentStatus: cfg.paymentStatus,
         };

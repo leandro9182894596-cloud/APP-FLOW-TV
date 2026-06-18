@@ -147,9 +147,20 @@ export function getCache<T>(key: string, maxAgeMs: number): T | null {
     return null;
   }
 }
-export function setCache<T>(_key: string, _value: T) {
-  // Cache disabled to prevent storage quota errors
-  return;
+export function setCache<T>(key: string, value: T) {
+  if (!isBrowser) return;
+  
+  try {
+    // Check size before saving to prevent quota errors
+    const dataToSave = JSON.stringify({ t: Date.now(), v: value });
+    if (dataToSave.length > 500 * 1024) { // 500KB max per cache entry
+      console.warn("Cache entry too large, not saving:", key);
+      return;
+    }
+    localStorage.setItem(CACHE_PREFIX + key, dataToSave);
+  } catch (e) {
+    console.warn("Failed to save to cache:", e);
+  }
 }
 
 // ---------- Continue watching ----------

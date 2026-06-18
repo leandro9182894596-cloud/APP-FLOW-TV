@@ -345,6 +345,7 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     // Reset error when banner changes
@@ -355,7 +356,11 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
     if (validBanners.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % validBanners.length);
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % validBanners.length);
+        setIsTransitioning(false);
+      }, 300); // Tempo de transição: 300ms
     }, 5000); // 5 segundos por banner
 
     return () => clearInterval(interval);
@@ -374,7 +379,7 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
           key={currentBanner.image}
           src={currentBanner.image}
           alt="Anúncio"
-          className="w-full object-contain sm:object-cover"
+          className={`w-full object-contain sm:object-cover transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
           style={{
             maxHeight: '50vh',
             minHeight: '120px',
@@ -403,7 +408,13 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
           {validBanners.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIndex(index)}
+              onClick={() => {
+                setIsTransitioning(true);
+                setTimeout(() => {
+                  setCurrentIndex(index);
+                  setIsTransitioning(false);
+                }, 300);
+              }}
               className={`h-2 rounded-full transition-all ${
                 index === currentIndex ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/80'
               }`}
