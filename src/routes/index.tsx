@@ -370,7 +370,8 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
       </span>
       
       {!imageError ? (
-        <motion.img
+        <img
+          key={currentBanner.image}
           src={currentBanner.image}
           alt="Anúncio"
           className="w-full object-contain sm:object-cover"
@@ -380,14 +381,11 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
             aspectRatio: '16/9'
           }}
           loading="eager"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
           onError={() => setImageError(true)}
         />
       ) : (
         // Fallback se a imagem não carregar
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-secondary p-3 text-center" style={{
+        <div key="fallback" className="flex h-full w-full flex-col items-center justify-center gap-2 bg-secondary p-3 text-center" style={{
           maxHeight: '50vh',
           minHeight: '120px',
           aspectRatio: '16/9'
