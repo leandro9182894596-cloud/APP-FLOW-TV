@@ -245,13 +245,13 @@ function AdminPage() {
 
           <ImageField
             label="Logo"
-            help="Tamanho recomendado: 512x512 pixels. Aparece no menu e na tela inicial."
+            help="Tamanho recomendado: 512x512 pixels (quadrado). Aparece no menu e na tela inicial."
             value={form.logo}
             onChange={(v) => update({ logo: v })}
           />
           <ImageField
             label="Plano de fundo"
-            help="Tamanho recomendado: 1920x1080 pixels. Imagem de fundo do aplicativo."
+            help="Tamanho recomendado: 1920x1080 pixels (16:9). Imagem de fundo do aplicativo."
             value={form.background}
             onChange={(v) => update({ background: v })}
           />
@@ -270,7 +270,7 @@ function AdminPage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Os banners rotacionam automaticamente a cada 5 segundos.
+              Os banners rotacionam automaticamente a cada 5 segundos. Tamanho recomendado: 1920x1080 pixels (16:9).
             </p>
             
             {form.banners.map((banner, index) => (
@@ -291,7 +291,7 @@ function AdminPage() {
                 </div>
                 <ImageField
                   label="Imagem do banner"
-                  help="Tamanho recomendado: 1920x1080 pixels."
+                  help="Tamanho recomendado: 1920x1080 pixels (16:9)."
                   value={banner.image}
                   onChange={(v) => {
                     const newBanners = [...form.banners];

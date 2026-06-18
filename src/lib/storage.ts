@@ -9,8 +9,19 @@ const USERINFO_KEY = "flowtv.userinfo";
 const PROGRESS_KEY = "flowtv.progress";
 const FAV_KEY = "flowtv.favorites";
 const CACHE_PREFIX = "flowtv.cache.";
+const CLEANUP_DONE_KEY = "flowtv.cleanup.v1";
 
 const isBrowser = typeof window !== "undefined";
+
+// Clean up old cache on first load to prevent quota errors
+if (isBrowser && !localStorage.getItem(CLEANUP_DONE_KEY)) {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(CACHE_PREFIX))
+      .forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(CLEANUP_DONE_KEY, "done");
+  } catch {}
+}
 
 // ---------- Account ----------
 export function loadAccount(): Account | null {
