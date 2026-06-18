@@ -26,7 +26,7 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     }
   });
 
-  const { data, refetch } = useQuery<AppSettings>({
+  const { data, refetch, isLoading: isQueryLoading, isFetching } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: localSettings,
     staleTime: 60 * 1000, // 1 minuto para não refetchar todo segundo
@@ -75,6 +75,9 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     refetch();
   }, [refetch]);
 
-  // Never show loading screen — always use cached settings immediately
-  return { settings: data ?? localSettings, isLoading: false };
+  // Return loading state while fetching
+  return {
+    settings: data ?? localSettings,
+    isLoading: isQueryLoading || isFetching
+  };
 }

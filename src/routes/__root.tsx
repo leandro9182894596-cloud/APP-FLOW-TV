@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
@@ -15,6 +16,7 @@ import { TvRemoteNavigation } from "../components/TvRemoteNavigation";
 import { AccountProvider } from "../hooks/use-account";
 import { SupabaseAuthProvider } from "../hooks/use-supabase-auth";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { useSettings } from "../hooks/use-settings";
 
 function NotFoundComponent() {
   return (
@@ -142,12 +144,55 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <SupabaseAuthProvider>
         <AccountProvider>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <TvRemoteNavigation />
-          <Toaster position="top-center" theme="dark" richColors />
+          <AppInitializer />
         </AccountProvider>
       </SupabaseAuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppInitializer() {
+  const { isLoading, settings } = useSettings();
+
+  if (isLoading) {
+    return (
+      <div className="relative flex min-h-screen flex-col items-center justify-center bg-background">
+        {/* Background if available */}
+        {settings.background && (
+          <div className="pointer-events-none absolute inset-0 z-0">
+            <img src={settings.background} alt="" className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-background/85" />
+          </div>
+        )}
+        
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          {settings.logo ? (
+            <img
+              src={settings.logo}
+              alt="FLOW TV"
+              className="h-16 w-auto max-w-[200px] object-contain"
+            />
+          ) : (
+            <h1 className="font-display text-3xl font-extrabold tracking-tight">
+              FLOW<span className="text-gradient">TV</span>
+            </h1>
+          )}
+          
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm">Carregando configurações…</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
+      <TvRemoteNavigation />
+      <Toaster position="top-center" theme="dark" richColors />
+    </>
   );
 }
