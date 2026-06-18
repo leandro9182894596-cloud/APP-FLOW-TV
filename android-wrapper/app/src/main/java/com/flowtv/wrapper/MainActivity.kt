@@ -40,10 +40,6 @@ class MainActivity : AppCompatActivity() {
             
             // Melhorias de cache e desempenho
             settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-            @Suppress("DEPRECATION")
-            settings.setAppCacheEnabled(true)
-            @Suppress("DEPRECATION")
-            settings.setAppCachePath(cacheDir.absolutePath)
             settings.allowFileAccess = true
             settings.allowContentAccess = true
             settings.blockNetworkLoads = false
@@ -53,14 +49,6 @@ class MainActivity : AppCompatActivity() {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 settings.setSafeBrowsingEnabled(false)
             }
-            
-            // Desempenho
-            @Suppress("DEPRECATION")
-            settings.setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH)
-            @Suppress("DEPRECATION")
-            settings.enableSmoothTransition()
-            @Suppress("DEPRECATION")
-            settings.setEnableSmoothTransition(true)
             
             webChromeClient = FlowWebChromeClient()
             webViewClient = FlowWebViewClient()
