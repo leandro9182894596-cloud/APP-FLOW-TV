@@ -92,6 +92,13 @@ export function loadSettings(): AppSettings {
 export function saveSettings(settings: AppSettings) {
   if (!isBrowser) return;
   
+  // First, clear all old cache to free up space
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('flowtv.cache.'))
+      .forEach(k => localStorage.removeItem(k));
+  } catch {}
+  
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch (e) {
@@ -111,11 +118,7 @@ export function saveSettings(settings: AppSettings) {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(safeSettings));
     } catch (e2) {
-      console.error("Still can't save to localStorage - clearing old cache");
-      // Clear old cache if still failing
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('flowtv.cache.'))
-        .forEach(k => localStorage.removeItem(k));
+      console.error("Still can't save to localStorage - all data kept only in memory");
     }
   }
   window.dispatchEvent(new Event(SETTINGS_EVENT));

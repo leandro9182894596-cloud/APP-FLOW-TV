@@ -505,7 +505,10 @@ function ImageField({
         {help && <span className="block text-[11px] text-muted-foreground/70">{help}</span>}
       </div>
       <div className="flex items-center gap-3">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-secondary/50">
+        <div 
+          key={value || "empty"} 
+          className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-secondary/50"
+        >
           {value ? (
             <img src={value} alt={label} className="h-full w-full object-cover" />
           ) : (
