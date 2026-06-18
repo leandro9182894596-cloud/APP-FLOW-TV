@@ -37,6 +37,31 @@ class MainActivity : AppCompatActivity() {
             settings.loadsImagesAutomatically = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.setSupportMultipleWindows(false)
+            
+            // Melhorias de cache e desempenho
+            settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+            @Suppress("DEPRECATION")
+            settings.setAppCacheEnabled(true)
+            @Suppress("DEPRECATION")
+            settings.setAppCachePath(cacheDir.absolutePath)
+            settings.allowFileAccess = true
+            settings.allowContentAccess = true
+            settings.blockNetworkLoads = false
+            settings.blockNetworkImage = false
+            
+            // Service Worker e PWA
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                settings.setSafeBrowsingEnabled(false)
+            }
+            
+            // Desempenho
+            @Suppress("DEPRECATION")
+            settings.setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH)
+            @Suppress("DEPRECATION")
+            settings.enableSmoothTransition()
+            @Suppress("DEPRECATION")
+            settings.setEnableSmoothTransition(true)
+            
             webChromeClient = FlowWebChromeClient()
             webViewClient = FlowWebViewClient()
             loadUrl(getString(R.string.remote_app_url))
@@ -125,11 +150,19 @@ class MainActivity : AppCompatActivity() {
         enableFullscreen()
     }
 
-    private class FlowWebViewClient : WebViewClient() {
+    private inner class FlowWebViewClient : WebViewClient() {
         override fun shouldOverrideUrlLoading(
             view: WebView?,
             request: WebResourceRequest?
         ): Boolean = false
+
+        // Habilitar cache para recursos estáticos
+        override fun shouldInterceptRequest(
+            view: WebView?,
+            request: WebResourceRequest?
+        ): android.webkit.WebResourceResponse? {
+            return super.shouldInterceptRequest(view, request)
+        }
     }
 
     private inner class FlowWebChromeClient : WebChromeClient() {
