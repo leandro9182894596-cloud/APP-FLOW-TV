@@ -17,6 +17,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { getConfig, verifyAdmin, saveConfig } from "../lib/config.functions";
+import { saveSettings } from "../lib/storage";
 import type { PaymentInfo } from "../types/payment";
 
 export const Route = createFileRoute("/admin")({
