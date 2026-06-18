@@ -10,6 +10,7 @@ import { getConfig } from "../lib/config.functions";
  */
 export function useSettings(): { settings: AppSettings; isLoading: boolean } {
   const queryClient = useQueryClient();
+  const [hasLoaded, setHasLoaded] = useState(false);
   
   // Always use localStorage first for instant load
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => {
@@ -26,14 +27,13 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     }
   });
 
-  const { data, refetch, isLoading: isQueryLoading, isFetching } = useQuery<AppSettings>({
+  const { data, isLoading: isQueryLoading } = useQuery<AppSettings>({
     queryKey: ["app-config"],
     initialData: localSettings,
-    staleTime: 60 * 1000, // 1 minuto para não refetchar todo segundo
-    refetchOnMount: true,
+    staleTime: 30 * 60 * 1000, // 30 minutos
+    refetchOnMount: "always",
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    refetchInterval: 5 * 60 * 1000, // Refetch a cada 5 minutos
     queryFn: async () => {
       try {
         const cfg = await getConfig();
@@ -70,14 +70,16 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
     return () => window.removeEventListener(SETTINGS_EVENT, handleSettingsUpdate);
   }, [queryClient]);
 
-  // Refetch on mount to ensure we get the latest settings
+  // Mark as loaded when first data comes in
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (data && !hasLoaded) {
+      setHasLoaded(true);
+    }
+  }, [data, hasLoaded]);
 
-  // Return loading state while fetching
+  // Only show loading on FIRST load
   return {
     settings: data ?? localSettings,
-    isLoading: isQueryLoading || isFetching
+    isLoading: !hasLoaded && isQueryLoading
   };
 }
