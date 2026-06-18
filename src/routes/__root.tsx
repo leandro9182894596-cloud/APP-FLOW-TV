@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { TvRemoteNavigation } from "../components/TvRemoteNavigation";
 import { AccountProvider } from "../hooks/use-account";
+import { SupabaseAuthProvider } from "../hooks/use-supabase-auth";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -139,12 +140,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AccountProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <TvRemoteNavigation />
-        <Toaster position="top-center" theme="dark" richColors />
-      </AccountProvider>
+      <SupabaseAuthProvider>
+        <AccountProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <TvRemoteNavigation />
+          <Toaster position="top-center" theme="dark" richColors />
+        </AccountProvider>
+      </SupabaseAuthProvider>
     </QueryClientProvider>
   );
 }
