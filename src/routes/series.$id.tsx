@@ -119,7 +119,7 @@ function SeriesDetailPage() {
   const handleProgress = (pos: number, dur: number) => {
     if (!current) return;
     const now = Date.now();
-    if (now - lastSave.current < 5000) return;
+    if (now - lastSave.current < 2000) return;
     lastSave.current = now;
     saveProgress({
       key: progressKey,
@@ -132,6 +132,23 @@ function SeriesDetailPage() {
       position: pos,
       duration: dur,
       updatedAt: now,
+      ext: current.container_extension,
+    });
+  };
+
+  const handlePause = (pos: number, dur: number) => {
+    if (!current) return;
+    saveProgress({
+      key: progressKey,
+      type: "series",
+      refId: seriesId,
+      seriesId,
+      episodeId: current.id,
+      title: `${title} — T${current.seasonNum}:E${current.episode_num}`,
+      poster: cover || "",
+      position: pos,
+      duration: dur,
+      updatedAt: Date.now(),
       ext: current.container_extension,
     });
   };
@@ -177,6 +194,7 @@ function SeriesDetailPage() {
             poster={proxiedImage(current.info?.movie_image) || cover}
             startPosition={start}
             onProgress={handleProgress}
+            onPause={handlePause}
             onEnded={handleNext}
             onNext={handleNext}
             nextLabel="Próximo episódio"

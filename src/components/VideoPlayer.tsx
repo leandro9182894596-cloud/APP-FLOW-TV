@@ -30,6 +30,7 @@ interface VideoPlayerProps {
   startPosition?: number;
   autoPlay?: boolean;
   onProgress?: (position: number, duration: number) => void;
+  onPause?: (position: number, duration: number) => void;
   onEnded?: () => void;
   onNext?: () => void;
   nextLabel?: string;
@@ -94,6 +95,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
   startPosition = 0,
   autoPlay = true,
   onProgress,
+  onPause,
   onEnded,
   onNext,
   nextLabel,
@@ -346,7 +348,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
     const video = videoRef.current;
     if (!video) return;
     const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    const onPause = () => {
+      setPlaying(false);
+      if (onPause && video.duration) onPause(video.currentTime, video.duration);
+    };
     const onWaiting = () => setLoading(true);
     const onPlaying = () => {
       setLoading(false);
@@ -380,7 +385,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
       video.removeEventListener("ended", onEnd);
       video.removeEventListener("volumechange", onVol);
     };
-  }, [onProgress, onEnded]);
+  }, [onProgress, onPause, onEnded]);
 
   // ---- fullscreen and rotation ----
   

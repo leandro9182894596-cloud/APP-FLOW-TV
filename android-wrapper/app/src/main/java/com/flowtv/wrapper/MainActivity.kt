@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private var originalOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    private var webViewState: Bundle? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,16 +35,15 @@ class MainActivity : AppCompatActivity() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
+            settings.setAppCacheEnabled(true)
+            settings.allowFileAccess = true
+            settings.allowContentAccess = true
             settings.loadsImagesAutomatically = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.setSupportMultipleWindows(false)
             
             // Melhorias de cache e desempenho
             settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-            settings.allowFileAccess = true
-            settings.allowContentAccess = true
-            settings.blockNetworkLoads = false
-            settings.blockNetworkImage = false
             
             // Service Worker e PWA
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -52,6 +52,12 @@ class MainActivity : AppCompatActivity() {
             
             webChromeClient = FlowWebChromeClient()
             webViewClient = FlowWebViewClient()
+            
+            // Restaurar estado se disponível
+            if (savedInstanceState != null) {
+                restoreState(savedInstanceState)
+            }
+            
             loadUrl(getString(R.string.remote_app_url))
         }
 
@@ -68,6 +74,16 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        binding.webView.saveState(outState)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        binding.webView.restoreState(savedInstanceState)
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
@@ -78,11 +94,17 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         binding.webView.onResume()
+        webViewState?.let {
+            binding.webView.restoreState(it)
+        }
     }
 
     override fun onPause() {
-        binding.webView.onPause()
         super.onPause()
+        binding.webView.onPause()
+        val state = Bundle()
+        binding.webView.saveState(state)
+        webViewState = state
     }
 
     override fun onDestroy() {

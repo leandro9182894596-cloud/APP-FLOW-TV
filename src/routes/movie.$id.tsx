@@ -63,7 +63,7 @@ function MoviePage() {
 
   const handleProgress = (pos: number, dur: number) => {
     const now = Date.now();
-    if (now - lastSave.current < 5000) return;
+    if (now - lastSave.current < 2000) return;
     lastSave.current = now;
     saveProgress({
       key: progressKey,
@@ -74,6 +74,20 @@ function MoviePage() {
       position: pos,
       duration: dur,
       updatedAt: now,
+      ext,
+    });
+  };
+
+  const handlePause = (pos: number, dur: number) => {
+    saveProgress({
+      key: progressKey,
+      type: "movie",
+      refId: streamId,
+      title,
+      poster: poster || "",
+      position: pos,
+      duration: dur,
+      updatedAt: Date.now(),
       ext,
     });
   };
@@ -106,6 +120,7 @@ function MoviePage() {
             poster={poster}
             startPosition={resume?.position ?? 0}
             onProgress={handleProgress}
+            onPause={handlePause}
             lockLandscape
           />
         </div>
