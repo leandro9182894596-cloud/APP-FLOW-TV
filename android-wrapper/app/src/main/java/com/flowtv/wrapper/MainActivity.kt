@@ -1,6 +1,7 @@
 package com.flowtv.wrapper
 
 import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var originalOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,6 +93,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Save original orientation and force landscape
+        originalOrientation = requestedOrientation
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
         customView = view
         customViewCallback = callback
         binding.webView.visibility = View.GONE
@@ -112,6 +118,10 @@ class MainActivity : AppCompatActivity() {
         binding.webView.visibility = View.VISIBLE
         customViewCallback?.onCustomViewHidden()
         customViewCallback = null
+        
+        // Restore original orientation
+        requestedOrientation = originalOrientation
+        
         enableFullscreen()
     }
 
