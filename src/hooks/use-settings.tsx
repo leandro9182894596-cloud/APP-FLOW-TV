@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { loadSettings, saveSettings, type AppSettings } from "../lib/storage";
+import { loadSettings, saveSettings, type AppSettings, SETTINGS_EVENT } from "../lib/storage";
 import { getConfig } from "../lib/config.functions";
 
 /**
@@ -9,6 +9,8 @@ import { getConfig } from "../lib/config.functions";
  * admin. localStorage is used only as an instant-render cache.
  */
 export function useSettings(): { settings: AppSettings; isLoading: boolean } {
+  const queryClient = useQueryClient();
+  
   // Always use localStorage first for instant load
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => {
     try {
@@ -48,6 +50,19 @@ export function useSettings(): { settings: AppSettings; isLoading: boolean } {
       }
     },
   });
+
+  // Listen for settings updates from the admin page
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      // Refresh local settings and update the query cache
+      const newLocalSettings = loadSettings();
+      setLocalSettings(newLocalSettings);
+      queryClient.setQueryData(["app-config"], newLocalSettings);
+    };
+
+    window.addEventListener(SETTINGS_EVENT, handleSettingsUpdate);
+    return () => window.removeEventListener(SETTINGS_EVENT, handleSettingsUpdate);
+  }, [queryClient]);
 
   // Refetch on mount to ensure we get the latest settings
   useEffect(() => {
