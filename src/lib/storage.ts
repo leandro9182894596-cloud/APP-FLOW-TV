@@ -34,8 +34,12 @@ export function loadAccount(): Account | null {
 }
 export function saveAccount(account: Account, info?: UserInfo) {
   if (!isBrowser) return;
-  localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
-  if (info) localStorage.setItem(USERINFO_KEY, JSON.stringify(info));
+  try {
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
+    if (info) localStorage.setItem(USERINFO_KEY, JSON.stringify(info));
+  } catch (e) {
+    console.warn("Failed to save account to localStorage", e);
+  }
 }
 export function loadUserInfo(): UserInfo | null {
   if (!isBrowser) return null;
@@ -102,7 +106,7 @@ export function loadSettings(): AppSettings {
 export function saveSettings(settings: AppSettings) {
   if (!isBrowser) return;
   
-  // First, clear all old cache to free up space
+  // Clear old cache to free up space
   try {
     Object.keys(localStorage)
       .filter(k => k.startsWith('flowtv.cache.'))
@@ -110,28 +114,34 @@ export function saveSettings(settings: AppSettings) {
   } catch {}
   
   try {
+    // Try to save normally
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch (e) {
-    console.warn("Storage quota exceeded - not saving large data URLs to localStorage");
-    // If we can't save, just keep the in-memory data and don't crash
-    const safeSettings = { ...settings };
-    // Remove large data URLs to save space
-    if (safeSettings.logo?.startsWith('data:')) delete safeSettings.logo;
-    if (safeSettings.background?.startsWith('data:')) delete safeSettings.background;
-    if (safeSettings.banner?.startsWith('data:')) delete safeSettings.banner;
-    if (safeSettings.banners) {
-      safeSettings.banners = safeSettings.banners.map(b => ({
-        ...b,
-        image: b.image?.startsWith('data:') ? undefined : b.image
-      })).filter(b => b.image !== undefined) as Array<{ image: string; link?: string }>;
-    }
+    console.warn("Storage quota exceeded - trying safe save");
+    
+    // Try to save without large data URLs
     try {
+      const safeSettings = { ...settings };
+      // Remove large data URLs to save space
+      if (safeSettings.logo?.startsWith('data:')) delete safeSettings.logo;
+      if (safeSettings.background?.startsWith('data:')) delete safeSettings.background;
+      if (safeSettings.banner?.startsWith('data:')) delete safeSettings.banner;
+      if (safeSettings.banners) {
+        safeSettings.banners = safeSettings.banners.map(b => ({
+          ...b,
+          image: b.image?.startsWith('data:') ? undefined : b.image
+        })).filter(b => b.image !== undefined) as Array<{ image: string; link?: string }>;
+      }
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(safeSettings));
     } catch (e2) {
-      console.error("Still can't save to localStorage - all data kept only in memory");
+      console.error("Storage still full - settings kept only in memory");
     }
   }
-  window.dispatchEvent(new Event(SETTINGS_EVENT));
+  
+  // Dispatch event regardless of save success
+  try {
+    window.dispatchEvent(new Event(SETTINGS_EVENT));
+  } catch {}
 }
 
 // ---------- Cache (TTL) ----------
@@ -148,19 +158,8 @@ export function getCache<T>(key: string, maxAgeMs: number): T | null {
   }
 }
 export function setCache<T>(key: string, value: T) {
-  if (!isBrowser) return;
-  
-  try {
-    // Check size before saving to prevent quota errors
-    const dataToSave = JSON.stringify({ t: Date.now(), v: value });
-    if (dataToSave.length > 500 * 1024) { // 500KB max per cache entry
-      console.warn("Cache entry too large, not saving:", key);
-      return;
-    }
-    localStorage.setItem(CACHE_PREFIX + key, dataToSave);
-  } catch (e) {
-    console.warn("Failed to save to cache:", e);
-  }
+  // Completely disabled - no persistent localStorage caching for large content
+  return;
 }
 
 // ---------- Continue watching ----------
@@ -194,17 +193,25 @@ export function getProgress(key: string): ProgressEntry | undefined {
 }
 export function saveProgress(entry: ProgressEntry) {
   if (!isBrowser) return;
-  const list = loadProgress().filter((p) => p.key !== entry.key);
-  // Drop entries that are essentially finished (>95%)
-  if (entry.duration > 0 && entry.position / entry.duration < 0.95) {
-    list.unshift(entry);
+  try {
+    const list = loadProgress().filter((p) => p.key !== entry.key);
+    // Drop entries that are essentially finished (>95%)
+    if (entry.duration > 0 && entry.position / entry.duration < 0.95) {
+      list.unshift(entry);
+    }
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(list.slice(0, 40)));
+  } catch (e) {
+    console.warn("Failed to save progress to localStorage", e);
   }
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(list.slice(0, 40)));
 }
 export function removeProgress(key: string) {
   if (!isBrowser) return;
-  const list = loadProgress().filter((p) => p.key !== key);
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(list));
+  try {
+    const list = loadProgress().filter((p) => p.key !== key);
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.warn("Failed to remove progress from localStorage", e);
+  }
 }
 
 // ---------- Favorites ----------
@@ -230,9 +237,14 @@ export function isFavorite(id: string): boolean {
 }
 export function toggleFavorite(fav: Favorite): boolean {
   if (!isBrowser) return false;
-  const list = loadFavorites();
-  const exists = list.some((f) => f.id === fav.id);
-  const next = exists ? list.filter((f) => f.id !== fav.id) : [fav, ...list];
-  localStorage.setItem(FAV_KEY, JSON.stringify(next.slice(0, 200)));
-  return !exists;
+  try {
+    const list = loadFavorites();
+    const exists = list.some((f) => f.id === fav.id);
+    const next = exists ? list.filter((f) => f.id !== fav.id) : [fav, ...list];
+    localStorage.setItem(FAV_KEY, JSON.stringify(next.slice(0, 200)));
+    return !exists;
+  } catch (e) {
+    console.warn("Failed to save favorite to localStorage", e);
+    return false;
+  }
 }

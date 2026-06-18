@@ -42,26 +42,12 @@ function Home() {
     return withImg.length ? withImg[Math.floor(Math.random() * Math.min(withImg.length, 30))] : list[0];
   }, [movies.data]);
 
-  // Preload buffer: fetch movies, series and live TV in parallel and report
-  // per-step progress before releasing the app.
-  const steps: PreloadStep[] = [
-    { label: "Filmes", done: !!movies.data, error: !!movies.error },
-    { label: "Séries", done: !!series.data, error: !!series.error },
-    { label: "TV ao Vivo", done: !!live.data, error: !!live.error },
-  ];
-  const settled = steps.filter((s) => s.done || s.error).length;
-  const preloading = !!account && settled < steps.length;
-
   if (!ready || !account) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (preloading) {
-    return <SplashPreloader logo={settings.logo} background={settings.background} steps={steps} />;
   }
 
 
