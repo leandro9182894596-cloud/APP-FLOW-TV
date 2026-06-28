@@ -1,2 +1,2 @@
-export * from "./use-supabase-auth";
-export * from "./use-supabase-data";
+export * from "./use-auth";
+export * from "./use-data";

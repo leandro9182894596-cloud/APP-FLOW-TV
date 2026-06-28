@@ -1,8 +1,9 @@
 package com.flowtv.wrapper
 
 import android.annotation.SuppressLint
-import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
@@ -11,6 +12,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -19,9 +21,9 @@ import com.flowtv.wrapper.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private lateinit var devicePreference: DevicePreference
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
-    private var originalOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var webViewState: Bundle? = null
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -29,37 +31,30 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        devicePreference = DevicePreference(this)
         enableFullscreen()
 
-        binding.webView.apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.databaseEnabled = true
-            settings.setAppCacheEnabled(true)
-            settings.allowFileAccess = true
-            settings.allowContentAccess = true
-            settings.loadsImagesAutomatically = true
-            settings.mediaPlaybackRequiresUserGesture = false
-            settings.setSupportMultipleWindows(false)
-            
-            // Melhorias de cache e desempenho
-            settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-            
-            // Service Worker e PWA
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                settings.setSafeBrowsingEnabled(false)
+        WebViewManager.configureWebView(binding.webView, this)
+
+        binding.webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                if (view == null) return
+                showCustomView(view, callback)
             }
-            
-            webChromeClient = FlowWebChromeClient()
-            webViewClient = FlowWebViewClient()
-            
-            // Restaurar estado se disponível
-            if (savedInstanceState != null) {
-                restoreState(savedInstanceState)
+
+            override fun onHideCustomView() {
+                hideCustomView()
             }
-            
-            loadUrl(getString(R.string.remote_app_url))
         }
+
+        binding.webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean = false
+        }
+
+        binding.webView.loadUrl(Constants.REMOTE_APP_URL)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -82,13 +77,6 @@ class MainActivity : AppCompatActivity() {
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         binding.webView.restoreState(savedInstanceState)
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            enableFullscreen()
-        }
     }
 
     override fun onResume() {
@@ -114,10 +102,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun enableFullscreen() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, binding.root).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior =
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        WindowInsetsControllerCompat(window, binding.root).let { controller ->
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 
@@ -126,12 +113,6 @@ class MainActivity : AppCompatActivity() {
         if (customView != null) {
             callback?.onCustomViewHidden()
             return
-        }
-
-        // Save original orientation and force landscape (apenas se não for TV)
-        if (!isTvDevice()) {
-            originalOrientation = requestedOrientation
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
 
         customView = view
@@ -155,44 +136,34 @@ class MainActivity : AppCompatActivity() {
         binding.webView.visibility = View.VISIBLE
         customViewCallback?.onCustomViewHidden()
         customViewCallback = null
-        
-        // Restore original orientation (apenas se não for TV)
-        if (!isTvDevice()) {
-            requestedOrientation = originalOrientation
-        }
-        
         enableFullscreen()
     }
-    
-    // Verifica se é uma Android TV
-    private fun isTvDevice(): Boolean {
-        val uiModeManager = getSystemService(android.content.Context.UI_MODE_SERVICE) as android.app.UiModeManager
-        return uiModeManager.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
     }
 
-    private inner class FlowWebViewClient : WebViewClient() {
-        override fun shouldOverrideUrlLoading(
-            view: WebView?,
-            request: WebResourceRequest?
-        ): Boolean = false
-
-        // Habilitar cache para recursos estáticos
-        override fun shouldInterceptRequest(
-            view: WebView?,
-            request: WebResourceRequest?
-        ): android.webkit.WebResourceResponse? {
-            return super.shouldInterceptRequest(view, request)
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_change_device -> {
+                showChangeDeviceDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
-    private inner class FlowWebChromeClient : WebChromeClient() {
-        override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
-            if (view == null) return
-            showCustomView(view, callback)
-        }
-
-        override fun onHideCustomView() {
-            hideCustomView()
-        }
+    private fun showChangeDeviceDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.change_device_title)
+            .setMessage(R.string.change_device_message)
+            .setPositiveButton(R.string.yes) { _, _ ->
+                devicePreference.clearDeviceType()
+                NavigationManager.restartApp(this)
+                finish()
+            }
+            .setNegativeButton(R.string.no, null)
+            .show()
     }
 }

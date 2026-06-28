@@ -14,7 +14,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { TvRemoteNavigation } from "../components/TvRemoteNavigation";
 import { AccountProvider } from "../hooks/use-account";
-import { SupabaseAuthProvider } from "../hooks/use-supabase-auth";
+import { AuthProvider } from "../hooks/use-auth";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useSettings } from "../hooks/use-settings";
 
@@ -142,11 +142,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SupabaseAuthProvider>
+      <AuthProvider>
         <AccountProvider>
           <AppInitializer />
         </AccountProvider>
-      </SupabaseAuthProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
