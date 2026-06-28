@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContentType {
+  live
+  movie
+  series
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String?
+  password  String
+  avatarUrl String?  @map("avatar_url")
+  planId    String?  @map("plan_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  plan            Plan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
+  profiles        Profile?
+  dnsConnections  DnsConnection[]
+  favorites       Favorite[]
+  history         History[]
+  settings        Settings?
+  sessions        Session[]
+  devices         Device[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  username  String?
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  price        Float
+  durationDays Int      @map("duration_days")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  users        User[]
+
+  @@map("plans")
+}
+
+model DnsConnection {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  dnsUrl    String   @map("dns_url")
+  username  String
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dnsUrl])
+  @@map("dns_connections")
+}
+
+model Favorite {
+  id           String      @id @default(cuid())
+  userId       String      @map("user_id")
+  contentType  ContentType @map("content_type")
+  contentId    Int         @map("content_id")
+  title        String
+  poster       String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@map("favorites")
+}
+
+model History {
+  id           String      @id @default(cuid())
+  userId       String      @map("user_id")
+  contentType  ContentType @map("content_type")
+  contentId    Int         @map("content_id")
+  episodeId    String?     @map("episode_id")
+  title        String
+  poster       String?
+  position     Int         @default(0)
+  duration     Int         @default(0)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@map("watch_history")
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  logo      String?
+  background String?
+  banners   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  refreshToken String   @unique @map("refresh_token")
+  deviceInfo   String?  @map("device_info")
+  createdAt    DateTime @default(now()) @map("created_at")
+  expiresAt    DateTime @map("expires_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  deviceId  String   @unique @map("device_id")
+  deviceName String?  @map("device_name")
+  deviceType String?  @map("device_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("devices")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Ads {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?  @map("image_url")
+  linkUrl     String?  @map("link_url")
+  active      Boolean  @default(true)
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("ads")
+}
+
+model Logs {
+  id        String   @id @default(cuid())
+  action    String
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("logs")
+}
+
+model AppConfig {
+  id             Int      @id @default(1)
+  logo           String?
+  background     String?
+  banner         String?
+  bannerLink     String?  @map("banner_link")
+  banners        Json?
+  dnsList        Json     @map("dns_list")
+  paymentInfo    Json?    @map("payment_info")
+  paymentStatus  String?  @map("payment_status")
+  adminPassword  String   @map("admin_password")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("app_config")
+}
