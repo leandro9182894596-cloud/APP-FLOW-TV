@@ -1,18 +1,5 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
-import { api } from "../lib/api";
-
-interface User {
-  id: string;
-  email: string;
-  username?: string;
-  avatarUrl?: string;
-}
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { signIn, signUp, signOut, getCurrentUser, type User, loadTokensFromStorage } from "../lib/auth";
 
 interface AuthContextValue {
   user: User | null;
@@ -31,63 +18,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initialize = async () => {
       setLoading(true);
-      if (api.isAuthenticated()) {
-        try {
-          const response = await api.getProfile();
-          if (response.data) {
-            setUser(response.data);
-          }
-        } catch (error) {
-          console.error("Failed to get user profile:", error);
-        }
-      }
+      loadTokensFromStorage();
+      const currentUser = getCurrentUser();
+      setUser(currentUser);
       setLoading(false);
     };
-
     initialize();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const response = await api.login(email, password);
-    if (response.user) {
-      setUser(response.user);
-    }
-    return response;
+  const handleSignIn = async (email: string, password: string) => {
+    const data = await signIn(email, password);
+    setUser(data.user);
+    return data;
   };
 
-  const signUp = async (email: string, password: string, username?: string) => {
-    const response = await api.register(email, password, username);
-    if (response.user) {
-      setUser(response.user);
-    }
-    return response;
+  const handleSignUp = async (email: string, password: string, username?: string) => {
+    const data = await signUp(email, password, username);
+    setUser(data.user);
+    return data;
   };
 
-  const signOut = async () => {
-    await api.logout();
+  const handleSignOut = async () => {
+    await signOut();
     setUser(null);
   };
 
   const value = {
     user,
     loading,
-    signIn,
-    signUp,
-    signOut,
+    signIn: handleSignIn,
+    signUp: handleSignUp,
+    signOut: handleSignOut,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx)
-    throw new Error(
-      "useAuth must be used within AuthProvider"
-    );
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

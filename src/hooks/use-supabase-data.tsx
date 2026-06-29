@@ -1,34 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSupabaseAuth } from "./use-supabase-auth";
-import { useSupabase } from "../lib/supabase";
+import { useAuth } from "./use-auth";
 import {
   getFavorites,
   addFavorite,
   removeFavorite,
-  isFavorite,
-} from "../lib/supabase.favorites";
+  type Favorite,
+} from "../lib/favorites";
 import {
   getWatchHistory,
   saveWatchProgress,
   removeWatchProgress,
-} from "../lib/supabase.history";
-import {
-  getDnsConnections,
-  addDnsConnection,
-  updateDnsConnection,
-  deleteDnsConnection,
-} from "../lib/supabase.dns";
-import { getAppSettings, saveAppSettings } from "../lib/supabase.settings";
-import { getProfile, updateProfile } from "../lib/supabase.profiles";
+  type WatchHistory,
+} from "../lib/history";
+import { getAppSettings, saveAppSettings, type AppSetting } from "../lib/settings";
 
 export function useFavorites() {
-  const { user } = useSupabaseAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: favorites = [], isLoading } = useQuery({
+  const { data: favorites = [], isLoading } = useQuery<Favorite[]>({
     queryKey: ["favorites", user?.id],
-    queryFn: () => (user ? getFavorites(user.id) : []),
-    enabled: !!user && useSupabase,
+    queryFn: () => (user ? getFavorites() : []),
+    enabled: !!user,
   });
 
   const addFavoriteMutation = useMutation({
@@ -43,8 +36,8 @@ export function useFavorites() {
       title: string;
       poster: string;
     }) => {
-      if (!user || !useSupabase) return null;
-      return addFavorite(user.id, contentType, contentId, title, poster);
+      if (!user) return null;
+      return addFavorite(contentType, contentId, title, poster);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["favorites", user?.id] });
@@ -59,8 +52,8 @@ export function useFavorites() {
       contentType: "live" | "movie" | "series";
       contentId: number;
     }) => {
-      if (!user || !useSupabase) return false;
-      return removeFavorite(user.id, contentType, contentId);
+      if (!user) return false;
+      return removeFavorite(contentType, contentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["favorites", user?.id] });
@@ -76,13 +69,13 @@ export function useFavorites() {
 }
 
 export function useWatchHistory() {
-  const { user } = useSupabaseAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: history = [], isLoading } = useQuery({
+  const { data: history = [], isLoading } = useQuery<WatchHistory[]>({
     queryKey: ["watchHistory", user?.id],
-    queryFn: () => (user ? getWatchHistory(user.id) : []),
-    enabled: !!user && useSupabase,
+    queryFn: () => (user ? getWatchHistory() : []),
+    enabled: !!user,
   });
 
   const saveProgressMutation = useMutation({
@@ -95,9 +88,8 @@ export function useWatchHistory() {
       duration: number;
       episodeId?: string;
     }) => {
-      if (!user || !useSupabase) return null;
+      if (!user) return null;
       return saveWatchProgress(
-        user.id,
         data.contentType,
         data.contentId,
         data.title,
@@ -120,8 +112,8 @@ export function useWatchHistory() {
       contentType: "movie" | "series";
       contentId: number;
     }) => {
-      if (!user || !useSupabase) return false;
-      return removeWatchProgress(user.id, contentType, contentId);
+      if (!user) return false;
+      return removeWatchProgress(contentType, contentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["watchHistory", user?.id] });
@@ -136,84 +128,20 @@ export function useWatchHistory() {
   };
 }
 
-export function useDnsConnections() {
-  const { user } = useSupabaseAuth();
-  const queryClient = useQueryClient();
-
-  const { data: dnsConnections = [], isLoading } = useQuery({
-    queryKey: ["dnsConnections", user?.id],
-    queryFn: () => (user ? getDnsConnections(user.id) : []),
-    enabled: !!user && useSupabase,
-  });
-
-  const addDnsMutation = useMutation({
-    mutationFn: async ({
-      dnsUrl,
-      username,
-      password,
-    }: {
-      dnsUrl: string;
-      username: string;
-      password: string;
-    }) => {
-      if (!user || !useSupabase) return null;
-      return addDnsConnection(user.id, dnsUrl, username, password);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dnsConnections", user?.id] });
-    },
-  });
-
-  const updateDnsMutation = useMutation({
-    mutationFn: async ({
-      id,
-      dnsUrl, username, password
-    }: {
-      id: string;
-      dnsUrl: string;
-      username: string;
-      password: string;
-    }) => {
-      if (!user || !useSupabase) return null;
-      return updateDnsConnection(id, dnsUrl, username, password);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dnsConnections", user?.id] });
-    },
-  });
-
-  const deleteDnsMutation = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
-      if (!user || !useSupabase) return false;
-      return deleteDnsConnection(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dnsConnections", user?.id] });
-    },
-  });
-
-  return {
-    dnsConnections, isLoading,
-    addDns: addDnsMutation.mutate,
-    updateDns: updateDnsMutation.mutate,
-    deleteDns: deleteDnsMutation.mutate,
-  };
-}
-
 export function useAppSettings() {
-  const { user } = useSupabaseAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: settings = null, isLoading } = useQuery({
+  const { data: settings = null, isLoading } = useQuery<AppSetting | null>({
     queryKey: ["appSettings", user?.id],
-    queryFn: () => (user ? getAppSettings(user.id) : null),
-    enabled: !!user && useSupabase,
+    queryFn: () => (user ? getAppSettings() : null),
+    enabled: !!user,
   });
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: any) => {
-      if (!user || !useSupabase) return null;
-      return saveAppSettings(user.id, newSettings);
+      if (!user) return null;
+      return saveAppSettings(newSettings);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appSettings", user?.id] });
@@ -221,33 +149,8 @@ export function useAppSettings() {
   });
 
   return {
-    settings, isLoading,
+    settings,
+    isLoading,
     saveSettings: saveSettingsMutation.mutate,
-  };
-}
-
-export function useProfile() {
-  const { user } = useSupabaseAuth();
-  const queryClient = useQueryClient();
-
-  const { data: profile = null, isLoading } = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: () => (user ? getProfile(user.id) : null),
-    enabled: !!user && useSupabase,
-  });
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (profileData: any) => {
-      if (!user || !useSupabase) return null;
-      return updateProfile(user.id, profileData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
-    },
-  });
-
-  return {
-    profile, isLoading,
-    updateProfile: updateProfileMutation.mutate,
   };
 }
