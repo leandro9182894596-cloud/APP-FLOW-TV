@@ -124,8 +124,8 @@ model History {
 model Settings {
   id        String   @id @default(cuid())
   userId    String   @unique @map("user_id")
-  logo      String?
-  background String?
+  logo      Text?
+  background Text?
   banners   Json?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -200,9 +200,9 @@ model Logs {
 
 model AppConfig {
   id             Int      @id @default(1)
-  logo           String?
-  background     String?
-  banner         String?
+  logo           Text?
+  background     Text?
+  banner         Text?
   bannerLink     String?  @map("banner_link")
   banners        Json?
   dnsList        Json     @map("dns_list")

@@ -3,6 +3,9 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { createServer } from "node:http";
+import { createReadStream, existsSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -56,6 +59,36 @@ const server = {
 
 export default server;
 
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+let baseDir = join(__filename, "..", "..");
+// If running from dist/server/, adjust path to project root
+if (baseDir.includes(join("dist", "server"))) {
+  baseDir = join(baseDir, "..", "..");
+}
+const __dirname = baseDir;
+
+// MIME types mapping
+const mimeTypes: Record<string, string> = {
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "application/javascript",
+  ".mjs": "application/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".webp": "image/webp",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".eot": "application/vnd.ms-fontobject",
+  ".otf": "font/otf",
+};
+
 // Node.js server startup
 if (typeof process !== "undefined" && process.env.NODE_ENV === "production") {
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -63,6 +96,20 @@ if (typeof process !== "undefined" && process.env.NODE_ENV === "production") {
   const httpServer = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "", `http://${req.headers.host}`);
+      
+      // Try to serve static file first
+      const staticFilePath = join(__dirname, "dist", "client", url.pathname);
+      if (existsSync(staticFilePath) && statSync(staticFilePath).isFile()) {
+        const ext = join(staticFilePath).slice(join(staticFilePath).lastIndexOf(".")).toLowerCase();
+        const contentType = mimeTypes[ext] || "application/octet-stream";
+        
+        res.writeHead(200, { "Content-Type": contentType });
+        const readStream = createReadStream(staticFilePath);
+        readStream.pipe(res);
+        return;
+      }
+
+      // If not static, pass to TanStack Start
       const request = new Request(url, {
         method: req.method,
         headers: new Headers(req.headers as any),

@@ -11,6 +11,16 @@ export default defineConfig({
       server: { entry: "server" },
       nitro: {
         preset: "node-server",
+        publicAssets: [
+          {
+            baseURL: "/assets",
+            dir: "dist/client/assets",
+          },
+          {
+            baseURL: "/",
+            dir: "dist/client",
+          },
+        ],
       },
     }),
     viteReact(),
