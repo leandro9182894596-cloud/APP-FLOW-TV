@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { createServer } from "node:http";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -37,7 +38,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
-export default {
+const server = {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
@@ -52,3 +53,57 @@ export default {
     }
   },
 };
+
+export default server;
+
+// Node.js server startup
+if (typeof process !== "undefined" && process.env.NODE_ENV === "production") {
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  
+  const httpServer = createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url || "", `http://${req.headers.host}`);
+      const request = new Request(url, {
+        method: req.method,
+        headers: new Headers(req.headers as any),
+        body:
+          req.method !== "GET" && req.method !== "HEAD"
+            ? req
+            : undefined,
+        // @ts-ignore
+        duplex: "half",
+      });
+
+      const response = await server.fetch(request, {}, {});
+
+      res.statusCode = response.status;
+      response.headers.forEach((value, key) => {
+        res.setHeader(key, value);
+      });
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        const pump = async () => {
+          const { done, value } = await reader.read();
+          if (done) {
+            res.end();
+            return;
+          }
+          res.write(value);
+          return pump();
+        };
+        pump();
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      console.error(error);
+      res.statusCode = 500;
+      res.end(renderErrorPage());
+    }
+  });
+
+  httpServer.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}
