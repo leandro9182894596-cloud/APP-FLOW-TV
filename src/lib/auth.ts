@@ -1,5 +1,7 @@
 import { apiRequest, saveTokensToStorage, clearTokensFromStorage, loadTokensFromStorage, getAuthTokens } from './api';
 
+export { loadTokensFromStorage };
+
 export interface User {
   id: string;
   email: string;
