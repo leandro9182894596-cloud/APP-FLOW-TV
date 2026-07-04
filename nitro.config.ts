@@ -4,4 +4,7 @@ export default defineNitroConfig({
     serverDir: "dist/server",
     publicDir: "dist/client",
   },
+  requestBody: {
+    maxSize: "50mb",
+  },
 });

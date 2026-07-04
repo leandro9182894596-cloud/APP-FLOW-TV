@@ -1,10 +1,16 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { MonitorPlay, Loader2, User, Lock, Eye, EyeOff, Settings, Server } from "lucide-react";
-import { authenticateWithDnsFallback, FlowApiError, ERROR_MESSAGES } from "../lib/xtream";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  authenticateWithDnsFallback, FlowApiError, ERROR_MESSAGES,
+  getVodStreams, getSeries, getLiveStreams, type Account,
+} from "../lib/xtream";
 import { useAccount } from "../hooks/use-account";
 import { useSettings } from "../hooks/use-settings";
+import { accountKey } from "../lib/queries";
+import { SplashPreloader, type PreloadStep } from "../components/SplashPreloader";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -18,6 +24,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { login, account, ready } = useAccount();
   const { settings } = useSettings();
   const dnsList = useMemo(
@@ -28,10 +35,55 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [preloading, setPreloading] = useState(false);
+  const [preloadAccount, setPreloadAccount] = useState<Account | null>(null);
+  const [preloadSteps, setPreloadSteps] = useState<PreloadStep[]>([
+    { label: "Canais ao vivo", done: false, error: false },
+    { label: "Catálogo de filmes", done: false, error: false },
+    { label: "Séries", done: false, error: false },
+  ]);
 
   useEffect(() => {
-    if (ready && account) navigate({ to: "/" });
-  }, [ready, account, navigate]);
+    if (ready && account && !preloading) navigate({ to: "/" });
+  }, [ready, account, navigate, preloading]);
+
+  const runPreload = useCallback(async (a: Account) => {
+    const key = accountKey(a);
+
+    const updateStep = (index: number, update: Partial<PreloadStep>) => {
+      setPreloadSteps((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], ...update };
+        return next;
+      });
+    };
+
+    const fetchers = [
+      { index: 0, fn: () => getLiveStreams(a), queryKey: `${key}:live:all` },
+      { index: 1, fn: () => getVodStreams(a), queryKey: `${key}:vod:all` },
+      { index: 2, fn: () => getSeries(a), queryKey: `${key}:series:all` },
+    ];
+
+    await Promise.allSettled(
+      fetchers.map(async ({ index, fn, queryKey }) => {
+        try {
+          const data = await fn();
+          queryClient.setQueryData([queryKey], data);
+          updateStep(index, { done: true });
+        } catch {
+          updateStep(index, { error: true });
+        }
+      }),
+    );
+
+    navigate({ to: "/" });
+  }, [queryClient, navigate]);
+
+  useEffect(() => {
+    if (preloading && preloadAccount) {
+      runPreload(preloadAccount);
+    }
+  }, [preloading, preloadAccount, runPreload]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +104,8 @@ function LoginPage() {
         password,
       });
       login(nextAccount, info);
-      toast.success(`Bem-vindo, ${info.username}!`);
-      navigate({ to: "/" });
+      setPreloadAccount(nextAccount);
+      setPreloading(true);
     } catch (err) {
       const code = err instanceof FlowApiError ? err.code : "UNKNOWN";
       const m = ERROR_MESSAGES[code];
@@ -62,6 +114,16 @@ function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (preloading) {
+    return (
+      <SplashPreloader
+        logo={settings.logo}
+        background={settings.background}
+        steps={preloadSteps}
+      />
+    );
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">

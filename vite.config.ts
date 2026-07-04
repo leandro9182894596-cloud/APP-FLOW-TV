@@ -21,6 +21,9 @@ export default defineConfig({
             dir: "dist/client",
           },
         ],
+        requestBody: {
+          maxSize: "50mb",
+        },
       },
     }),
     viteReact(),

@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Loader2, Film, ArrowLeft } from "lucide-react";
+import { Loader2, Film, ArrowLeft, Sparkles } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { ContentCard } from "../components/ContentCard";
 import { useRequireAccount } from "../hooks/use-require-account";
@@ -9,6 +9,9 @@ import { getVodCategories, getVodStreams } from "../lib/xtream";
 import { CategoryPanel } from "../components/CategoryPanel";
 
 export const Route = createFileRoute("/movies")({
+  validateSearch: (search: Record<string, string>) => ({
+    sort: search.sort as "recent" | undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Filmes — FLOW TV" },
@@ -21,7 +24,8 @@ export const Route = createFileRoute("/movies")({
 function MoviesPage() {
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
-  const [cat, setCat] = useState("all");
+  const { sort } = Route.useSearch();
+  const [cat, setCat] = useState(sort === "recent" ? "" : "all");
   const [visible, setVisible] = useState(60);
   const [showItems, setShowItems] = useState(false);
 
@@ -35,9 +39,18 @@ function MoviesPage() {
   }, [movies.data]);
 
   const filtered = useMemo(() => {
-    const list = movies.data ?? [];
-    return cat === "all" ? list : list.filter((m) => m.category_id === cat);
-  }, [movies.data, cat]);
+    let list = movies.data ?? [];
+
+    if (sort === "recent") {
+      list = [...list].sort((a, b) => {
+        const aAdded = a.added ? parseInt(a.added) : 0;
+        const bAdded = b.added ? parseInt(b.added) : 0;
+        return bAdded - aAdded;
+      });
+    }
+
+    return cat === "all" ? list : cat === "" ? list : list.filter((m) => m.category_id === cat);
+  }, [movies.data, cat, sort]);
 
   const pickCategory = (c: string) => {
     setCat(c);
@@ -46,9 +59,11 @@ function MoviesPage() {
   };
 
   const activeName =
-    cat === "all"
-      ? "Todos os filmes"
-      : categories.data?.find((c) => c.category_id === cat)?.category_name ?? "Filmes";
+    sort === "recent"
+      ? "Recém-lançados"
+      : cat === "all"
+        ? "Todos os filmes"
+        : categories.data?.find((c) => c.category_id === cat)?.category_name ?? "Filmes";
 
   if (!ready || !account) {
     return (
@@ -70,6 +85,32 @@ function MoviesPage() {
           {/* Seleções */}
           <div className={showItems ? "hidden lg:block" : "block"}>
             <h2 className="mb-3 font-display text-lg font-bold">Seleções</h2>
+            <div className="mb-2 space-y-1">
+              <button
+                onClick={() => setCat("all")}
+                className={`focusable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  cat === "all" && sort !== "recent"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
+                }`}
+              >
+                <Film className="h-4 w-4" />
+                Todos os filmes
+                <span className="ml-auto text-xs opacity-70">{movies.data?.length ?? 0}</span>
+              </button>
+              <Link
+                to="/movies"
+                search={{ sort: "recent" }}
+                className={`focusable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  sort === "recent"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
+                }`}
+              >
+                <Sparkles className="h-4 w-4" />
+                Recém-lançados
+              </Link>
+            </div>
             <CategoryPanel
               categories={categories.data ?? []}
               counts={counts}

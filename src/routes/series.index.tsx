@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Loader2, Clapperboard, ArrowLeft } from "lucide-react";
+import { Loader2, Clapperboard, ArrowLeft, Sparkles } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { SeriesCard } from "../components/SeriesCard";
 import { useRequireAccount } from "../hooks/use-require-account";
@@ -10,6 +10,9 @@ import { CategoryPanel } from "../components/CategoryPanel";
 import { Grid } from "./movies";
 
 export const Route = createFileRoute("/series/")({
+  validateSearch: (search: Record<string, string>) => ({
+    sort: search.sort as "recent" | undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Séries — FLOW TV" },
@@ -22,7 +25,8 @@ export const Route = createFileRoute("/series/")({
 function SeriesPage() {
   const { account, ready } = useRequireAccount();
   const key = accountKey(account);
-  const [cat, setCat] = useState("all");
+  const { sort } = Route.useSearch();
+  const [cat, setCat] = useState(sort === "recent" ? "" : "all");
   const [visible, setVisible] = useState(60);
   const [showItems, setShowItems] = useState(false);
 
@@ -36,9 +40,18 @@ function SeriesPage() {
   }, [series.data]);
 
   const filtered = useMemo(() => {
-    const list = series.data ?? [];
-    return cat === "all" ? list : list.filter((s) => s.category_id === cat);
-  }, [series.data, cat]);
+    let list = series.data ?? [];
+
+    if (sort === "recent") {
+      list = [...list].sort((a, b) => {
+        const aRel = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+        const bRel = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+        return bRel - aRel || (b.series_id - a.series_id);
+      });
+    }
+
+    return cat === "all" ? list : cat === "" ? list : list.filter((s) => s.category_id === cat);
+  }, [series.data, cat, sort]);
 
   const pickCategory = (c: string) => {
     setCat(c);
@@ -47,9 +60,11 @@ function SeriesPage() {
   };
 
   const activeName =
-    cat === "all"
-      ? "Todas as séries"
-      : categories.data?.find((c) => c.category_id === cat)?.category_name ?? "Séries";
+    sort === "recent"
+      ? "Recém-lançados"
+      : cat === "all"
+        ? "Todas as séries"
+        : categories.data?.find((c) => c.category_id === cat)?.category_name ?? "Séries";
 
   if (!ready || !account) {
     return (
@@ -71,6 +86,32 @@ function SeriesPage() {
           {/* Seleções */}
           <div className={showItems ? "hidden lg:block" : "block"}>
             <h2 className="mb-3 font-display text-lg font-bold">Seleções</h2>
+            <div className="mb-2 space-y-1">
+              <button
+                onClick={() => setCat("all")}
+                className={`focusable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  cat === "all" && sort !== "recent"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
+                }`}
+              >
+                <Clapperboard className="h-4 w-4" />
+                Todas as séries
+                <span className="ml-auto text-xs opacity-70">{series.data?.length ?? 0}</span>
+              </button>
+              <Link
+                to="/series"
+                search={{ sort: "recent" }}
+                className={`focusable flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  sort === "recent"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
+                }`}
+              >
+                <Sparkles className="h-4 w-4" />
+                Recém-lançados
+              </Link>
+            </div>
             <CategoryPanel
               categories={categories.data ?? []}
               counts={counts}

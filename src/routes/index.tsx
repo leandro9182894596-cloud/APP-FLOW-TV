@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Play, Info, Loader2, History, X, Check, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { Play, Info, History, X } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { ContentCard } from "../components/ContentCard";
 import { SeriesCard } from "../components/SeriesCard";
@@ -10,6 +9,7 @@ import { useSettings } from "../hooks/use-settings";
 import { useCachedQuery, accountKey } from "../lib/queries";
 import { getVodStreams, getSeries, getLiveStreams, proxiedImage, type Account, type SeriesItem } from "../lib/xtream";
 import { loadProgress, removeProgress, type ProgressEntry } from "../lib/storage";
+import { SplashPreloader } from "../components/SplashPreloader";
 import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/")({
@@ -44,9 +44,30 @@ function Home() {
 
   if (!ready || !account) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <SplashPreloader
+        logo={settings.logo}
+        background={settings.background}
+        steps={[
+          { label: "Conectando…", done: false, error: false },
+          { label: "Canais ao vivo", done: false, error: false },
+          { label: "Catálogo de filmes", done: false, error: false },
+          { label: "Séries", done: false, error: false },
+        ]}
+      />
+    );
+  }
+
+  if (movies.isLoading || series.isLoading || live.isLoading) {
+    return (
+      <SplashPreloader
+        logo={settings.logo}
+        background={settings.background}
+        steps={[
+          { label: "Canais ao vivo", done: !live.isLoading, error: false },
+          { label: "Catálogo de filmes", done: !movies.isLoading, error: false },
+          { label: "Séries", done: !series.isLoading, error: false },
+        ]}
+      />
     );
   }
 
@@ -172,6 +193,7 @@ function Home() {
           title="Filmes em destaque"
           loading={movies.isLoading && !movies.data}
           to="/movies"
+          toSearch={{ sort: "recent" }}
           items={(movies.data ?? []).slice(0, 18).map((m) => ({
             id: m.stream_id,
             to: "/movie/$id",
@@ -181,7 +203,7 @@ function Home() {
           }))}
         />
 
-        <SeriesHomeRow loading={series.isLoading && !series.data} items={(series.data ?? []).slice(0, 18)} account={account} cacheKey={key} />
+        <SeriesHomeRow loading={series.isLoading && !series.data} items={(series.data ?? []).slice(0, 18)} account={account} cacheKey={key} toSearch={{ sort: "recent" }} />
 
         <RowSection
           title="Canais ao vivo"
@@ -236,19 +258,21 @@ function RowSection({
   items,
   loading,
   to,
+  toSearch,
   wide,
 }: {
   title: string;
   items: RowItem[];
   loading: boolean;
   to: string;
+  toSearch?: Record<string, string>;
   wide?: boolean;
 }) {
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-display text-xl font-bold">{title}</h2>
-        <Link to={to as never} className="focusable text-sm font-medium text-primary hover:underline">
+        <Link to={to as never} search={toSearch} className="focusable text-sm font-medium text-primary hover:underline">
           Ver tudo
         </Link>
       </div>
@@ -288,17 +312,19 @@ function SeriesHomeRow({
   loading,
   account,
   cacheKey,
+  toSearch,
 }: {
   items: SeriesItem[];
   loading: boolean;
   account: Account;
   cacheKey: string;
+  toSearch?: Record<string, string>;
 }) {
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-display text-xl font-bold">Séries populares</h2>
-        <Link to="/series" className="focusable text-sm font-medium text-primary hover:underline">
+        <Link to="/series" search={toSearch} className="focusable text-sm font-medium text-primary hover:underline">
           Ver tudo
         </Link>
       </div>
@@ -422,99 +448,5 @@ function AdBanner({ banners }: { banners: Array<{ image: string; link?: string }
 }
 
 
-interface PreloadStep {
-  label: string;
-  done: boolean;
-  error: boolean;
-}
-
-function SplashPreloader({
-  logo,
-  background,
-  steps,
-}: {
-  logo?: string;
-  background?: string;
-  steps: PreloadStep[];
-}) {
-  const settled = steps.filter((s) => s.done || s.error).length;
-  const pct = Math.round((settled / steps.length) * 100);
-  const activeIndex = steps.findIndex((s) => !s.done && !s.error);
-
-  return (
-    <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-6">
-      {background && (
-        <div className="pointer-events-none absolute inset-0">
-          <img src={background} alt="" className="h-full w-full object-cover opacity-20" />
-          <div className="absolute inset-0 bg-background/85" />
-        </div>
-      )}
-      <div className="pointer-events-none absolute -left-40 top-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-      <div className="pointer-events-none absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 flex w-full max-w-sm flex-col items-center text-center"
-      >
-        {logo ? (
-          <img src={logo} alt="Logo" className="mb-6 h-20 w-auto max-w-[220px] object-contain" />
-        ) : (
-          <h1 className="mb-6 font-display text-4xl font-extrabold tracking-tight">
-            FLOW<span className="text-gradient">TV</span>
-          </h1>
-        )}
-
-        <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-          <motion.div
-            className="h-full rounded-full bg-gradient-primary"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          />
-        </div>
-        <p className="mt-3 text-sm text-muted-foreground">Carregando seu catálogo… {pct}%</p>
-
-        {/* Per-step progress */}
-        <ul className="mt-6 w-full space-y-2 text-left">
-          {steps.map((step, i) => {
-            const isActive = i === activeIndex;
-            return (
-              <li
-                key={step.label}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${
-                  step.done
-                    ? "border-primary/40 bg-primary/10 text-foreground"
-                    : step.error
-                      ? "border-destructive/40 bg-destructive/10 text-foreground"
-                      : isActive
-                        ? "border-border bg-card/70 text-foreground"
-                        : "border-border/60 bg-card/30 text-muted-foreground"
-                }`}
-              >
-                <span className="grid h-6 w-6 shrink-0 place-items-center">
-                  {step.done ? (
-                    <Check className="h-5 w-5 text-primary" />
-                  ) : step.error ? (
-                    <AlertCircle className="h-5 w-5 text-destructive" />
-                  ) : isActive ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  ) : (
-                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
-                  )}
-                </span>
-                <span className="flex-1 font-medium">{step.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {step.done ? "Pronto" : step.error ? "Falhou" : isActive ? "Carregando…" : "Aguardando"}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </motion.div>
-    </div>
-  );
-}
 
 
