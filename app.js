@@ -1,14 +1,12 @@
 import { fork, execSync } from "node:child_process";
 import http from "node:http";
-import express from "express";
-import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const API_PORT = 3001; // Fixed internal port for the Express backend
+const API_PORT = 3001;
+const SSR_PORT = PORT + 2;
 
 // Run Prisma migrations at startup
 try {
@@ -19,92 +17,96 @@ try {
   });
   console.log("[DB] Migrations applied");
 } catch (e) {
-  console.error("[DB] Migration failed, continuing anyway:", e.message);
+  console.error("[DB] Migration failed:", e.message);
 }
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// Helper: proxy request to target
+function proxyRequest(req, res, target) {
+  const url = new URL(req.url || "/", target);
+  const opts = {
+    hostname: url.hostname,
+    port: url.port,
+    path: url.pathname + url.search,
+    method: req.method,
+    headers: { ...req.headers, host: url.host },
+  };
 
-// Start backend API in a child process
+  const proxy = http.request(opts, (upstream) => {
+    res.writeHead(upstream.statusCode, upstream.headers);
+    upstream.pipe(res);
+  });
+
+  proxy.on("error", () => {
+    res.writeHead(502, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Bad Gateway" }));
+  });
+
+  req.pipe(proxy);
+}
+
+// Start backend API (Express)
 const backend = fork(path.join(__dirname, "backend/src/server.js"), [], {
   env: { ...process.env, PORT: String(API_PORT) },
   stdio: "pipe",
 });
-
 backend.stdout?.on("data", (d) => process.stdout.write(`[API] ${d}`));
 backend.stderr?.on("data", (d) => process.stderr.write(`[API] ${d}`));
 
-// Wait for backend to be ready
-await new Promise((resolve) => {
-  const check = () => {
-    const req = http.get(`http://localhost:${API_PORT}/health`, (res) => {
-      console.log(`[API] Backend ready (status ${res.statusCode})`);
-      res.resume();
-      resolve();
-    });
-    req.on("error", () => setTimeout(check, 300));
-    req.end();
-  };
-  check();
+// Start frontend SSR (Nitro)
+const frontend = fork(path.join(__dirname, "dist/server/server.js"), [], {
+  env: { ...process.env, PORT: String(SSR_PORT) },
+  stdio: "pipe",
 });
+frontend.stdout?.on("data", (d) => process.stdout.write(`[SSR] ${d}`));
+frontend.stderr?.on("data", (d) => process.stderr.write(`[SSR] ${d}`));
 
-// Proxy backend API routes to the child process
-const BACKEND_PREFIXES = [
-  "/api/auth", "/api/users", "/api/favorites",
-  "/api/history", "/api/settings", "/api/ads", "/api/admin",
-];
-
-app.use(async (req, res, next) => {
-  const matches = BACKEND_PREFIXES.some((p) => req.path.startsWith(p));
-  if (!matches) return next();
-
-  const targetUrl = `http://localhost:${API_PORT}${req.originalUrl}`;
-
-  try {
-    const headers = {
-      "content-type": req.headers["content-type"] || "application/json",
-      accept: req.headers["accept"] || "application/json",
-      host: `localhost:${API_PORT}`,
+// Wait for both to be ready
+await Promise.all([
+  new Promise((resolve) => {
+    const check = () => {
+      const req = http.get(`http://localhost:${API_PORT}/health`, (res) => {
+        console.log(`[API] Ready (port ${API_PORT})`);
+        res.resume();
+        resolve();
+      });
+      req.on("error", () => setTimeout(check, 300));
+      req.end();
     };
+    check();
+  }),
+  new Promise((resolve) => {
+    const check = () => {
+      const req = http.get(`http://localhost:${SSR_PORT}/`, (res) => {
+        console.log(`[SSR] Ready (port ${SSR_PORT})`);
+        res.resume();
+        resolve();
+      });
+      req.on("error", () => setTimeout(check, 300));
+      req.end();
+    };
+    check();
+  }),
+]);
 
-    const body = req.method !== "GET" && req.method !== "HEAD"
-      ? JSON.stringify(req.body)
-      : undefined;
+// Reverse proxy server
+const server = http.createServer((req, res) => {
+  const pathname = req.url || "/";
+  const isApi =
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/users") ||
+    pathname.startsWith("/api/favorites") ||
+    pathname.startsWith("/api/history") ||
+    pathname.startsWith("/api/settings") ||
+    pathname.startsWith("/api/ads") ||
+    pathname.startsWith("/api/admin") ||
+    pathname === "/health";
 
-    const upstream = await fetch(targetUrl, {
-      method: req.method,
-      headers,
-      body,
-    });
-
-    res.status(upstream.status);
-    upstream.headers.forEach((v, k) => {
-      if (!["transfer-encoding", "connection"].includes(k.toLowerCase())) {
-        res.setHeader(k, v);
-      }
-    });
-    res.end(await upstream.text());
-  } catch {
-    res.status(502).json({ error: "Backend unavailable" });
-  }
+  const target = `http://localhost:${isApi ? API_PORT : SSR_PORT}`;
+  proxyRequest(req, res, target);
 });
 
-// Serve static assets directly
-const clientDir = path.join(__dirname, "dist/client");
-if (existsSync(clientDir)) {
-  app.use("/assets", express.static(path.join(clientDir, "assets"), { maxAge: "7d" }));
-  app.use("/favicon.ico", express.static(path.join(clientDir, "favicon.ico")));
-  app.use("/favicon.png", express.static(path.join(clientDir, "favicon.png")));
-  app.use(express.static(clientDir));
-}
-
-// Mount the Nitro SSR handler (frontend + /api/public/*)
-const { handler } = await import("./dist/server/server.js");
-app.use(handler);
-
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Backend API on port ${API_PORT}`);
+  console.log(`  API Backend → http://localhost:${API_PORT}`);
+  console.log(`  Frontend SSR → http://localhost:${SSR_PORT}`);
 });
