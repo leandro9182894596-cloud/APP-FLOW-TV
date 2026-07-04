@@ -2,13 +2,11 @@ import { fork, execSync } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync, statSync, createReadStream } from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const API_PORT = 3001;
 const SSR_PORT = PORT + 2;
-const CLIENT_DIR = path.join(__dirname, "dist", "client");
 
 // Run Prisma migrations
 try {
@@ -30,7 +28,7 @@ const backend = fork(path.join(__dirname, "backend/src/server.js"), [], {
 backend.stdout?.on("data", (d) => process.stdout.write(`[API] ${d}`));
 backend.stderr?.on("data", (d) => process.stderr.write(`[API] ${d}`));
 
-// Fork frontend SSR (Nitro)
+// Fork frontend SSR (Nitro) – path fix applied by postbuild.js
 const frontend = fork(path.join(__dirname, "dist/server/server.js"), [], {
   env: { ...process.env, PORT: String(SSR_PORT) },
   stdio: "pipe",
@@ -44,7 +42,7 @@ await Promise.all([
   waitForServer(SSR_PORT, "/"),
 ]);
 
-console.log("[Proxy] Both servers ready, starting proxy on port", PORT);
+console.log("[Proxy] Ready on port", PORT);
 
 function waitForServer(port, path) {
   return new Promise((resolve) => {
@@ -58,35 +56,11 @@ function waitForServer(port, path) {
   });
 }
 
-const MIME_TYPES = {
-  ".html": "text/html", ".css": "text/css", ".js": "application/javascript",
-  ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg", ".gif": "image/gif", ".svg": "image/svg+xml",
-  ".ico": "image/x-icon", ".webp": "image/webp",
-  ".woff": "font/woff", ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-};
-
-// Proxy server with direct static file serving
+// Reverse proxy
 http.createServer((req, res) => {
   const urlPath = req.url || "/";
-
-  // Serve static files directly (bypass Nitro SSR which has path bug)
-  const relativeUrl = urlPath.replace(/^\//, "");
-  const staticPath = path.join(CLIENT_DIR, relativeUrl);
-  if (existsSync(staticPath) && statSync(staticPath).isFile()) {
-    const ext = path.extname(staticPath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || "application/octet-stream";
-    res.writeHead(200, { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" });
-    createReadStream(staticPath).pipe(res);
-    return;
-  }
-
-  // Route API calls to backend or SSR
-  const isApi = [
-    "/api/auth", "/api/users", "/api/favorites",
-    "/api/history", "/api/settings", "/api/ads",
-    "/api/admin", "/health",
+  const isApi = ["/api/auth","/api/users","/api/favorites","/api/history",
+    "/api/settings","/api/ads","/api/admin","/health"
   ].some((p) => urlPath.startsWith(p));
 
   const target = `http://localhost:${isApi ? API_PORT : SSR_PORT}`;
