@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -89,6 +90,15 @@ app.use(async (req, res, next) => {
     res.status(502).json({ error: "Backend unavailable" });
   }
 });
+
+// Serve static assets directly
+const clientDir = path.join(__dirname, "dist/client");
+if (existsSync(clientDir)) {
+  app.use("/assets", express.static(path.join(clientDir, "assets"), { maxAge: "7d" }));
+  app.use("/favicon.ico", express.static(path.join(clientDir, "favicon.ico")));
+  app.use("/favicon.png", express.static(path.join(clientDir, "favicon.png")));
+  app.use(express.static(clientDir));
+}
 
 // Mount the Nitro SSR handler (frontend + /api/public/*)
 const { handler } = await import("./dist/server/server.js");
