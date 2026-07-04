@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "node dist/server/server.js",
+    "start": "node app.js",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "postinstall": "cd backend && npm install"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

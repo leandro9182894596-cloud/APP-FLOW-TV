@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -124,8 +124,8 @@ model History {
 model Settings {
   id        String   @id @default(cuid())
   userId    String   @unique @map("user_id")
-  logo      String?  @db.Text
-  background String?  @db.Text
+  logo      String?
+  background String?
   banners   Json?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -200,9 +200,9 @@ model Logs {
 
 model AppConfig {
   id             Int      @id @default(1)
-  logo           String?  @db.LongText
-  background     String?  @db.LongText
-  banner         String?  @db.LongText
+  logo           String?
+  background     String?
+  banner         String?
   bannerLink     String?  @map("banner_link")
   banners        Json?
   dnsList        Json     @map("dns_list")

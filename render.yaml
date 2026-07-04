@@ -1,20 +1,34 @@
 services:
   - type: web
-    name: flowtv-app
+    name: flowtv
     env: node
-    plan: starter
-    buildCommand: rm -rf dist node_modules/.vite && npm install && npm run build
-    startCommand: npm run preview
+    region: oregon
+    plan: free
+    buildCommand: npm install && cd backend && npm install && npx prisma generate && cd .. && npm run build
+    startCommand: node app.js
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: NODE_ENV
         value: production
-      - key: VITE_SUPABASE_URL
-        value: https://kvyloomugemyyokkervq.supabase.co
-      - key: VITE_SUPABASE_PUBLISHABLE_KEY
-        value: sb_publishable_5gEE3MzDtpkqUJb6ENfqzg_yEKKvIu2
-      - key: SUPABASE_URL
-        value: https://kvyloomugemyyokkervq.supabase.co
-      - key: SUPABASE_PUBLISHABLE_KEY
-        value: sb_publishable_5gEE3MzDtpkqUJb6ENfqzg_yEKKvIu2
+      - key: VITE_API_URL
+        value: http://localhost:3001/api
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flowtv-db
+          property: connectionString
+
+databases:
+  - name: flowtv-db
+    plan: free
+    region: oregon
+    databaseName: flowtv
+    user: flowtv
