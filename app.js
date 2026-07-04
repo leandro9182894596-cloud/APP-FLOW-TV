@@ -72,7 +72,8 @@ http.createServer((req, res) => {
   const urlPath = req.url || "/";
 
   // Serve static files directly (bypass Nitro SSR which has path bug)
-  const staticPath = path.join(CLIENT_DIR, urlPath);
+  const relativeUrl = urlPath.replace(/^\//, "");
+  const staticPath = path.join(CLIENT_DIR, relativeUrl);
   if (existsSync(staticPath) && statSync(staticPath).isFile()) {
     const ext = path.extname(staticPath).toLowerCase();
     const contentType = MIME_TYPES[ext] || "application/octet-stream";
