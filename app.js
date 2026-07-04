@@ -1,4 +1,5 @@
 import { fork, execSync } from "node:child_process";
+import http from "node:http";
 import express from "express";
 import cors from "cors";
 import path from "node:path";
@@ -33,6 +34,20 @@ const backend = fork(path.join(__dirname, "backend/src/server.js"), [], {
 
 backend.stdout?.on("data", (d) => process.stdout.write(`[API] ${d}`));
 backend.stderr?.on("data", (d) => process.stderr.write(`[API] ${d}`));
+
+// Wait for backend to be ready
+await new Promise((resolve) => {
+  const check = () => {
+    const req = http.get(`http://localhost:${API_PORT}/health`, (res) => {
+      console.log(`[API] Backend ready (status ${res.statusCode})`);
+      res.resume();
+      resolve();
+    });
+    req.on("error", () => setTimeout(check, 300));
+    req.end();
+  };
+  check();
+});
 
 // Proxy backend API routes to the child process
 const BACKEND_PREFIXES = [
