@@ -1,5 +1,5 @@
 export default defineNitroConfig({
-  preset: "node-server",
+  preset: "netlify",
   output: {
     serverDir: "dist/server",
     publicDir: "dist/client",
