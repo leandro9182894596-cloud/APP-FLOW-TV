@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "cd backend && npm install"
+    "postinstall": "cd backend && npm install && cd .. && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

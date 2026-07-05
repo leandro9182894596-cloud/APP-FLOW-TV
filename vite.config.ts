@@ -10,7 +10,7 @@ export default defineConfig({
     tanstackStart({
       server: { entry: "server" },
       nitro: {
-        preset: "netlify",
+        preset: "node-server",
         publicAssets: [
           {
             baseURL: "/assets",

@@ -3,7 +3,7 @@ module.exports = {
     name: 'flowtv-frontend',
     script: 'npm',
     args: 'start',
-    cwd: '/home/ubuntu/APP-FLOW-TV',
+    cwd: __dirname,
     env: {
       NODE_ENV: 'production',
       PORT: 3000
